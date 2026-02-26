@@ -1,4 +1,4 @@
-# Phillips Universal Remote Control
+# Universal Remote and 3D Simulator
 
 A C programming project for programming and controlling a Phillips universal remote control device.
 
@@ -515,4 +515,5 @@ See `docs/LATENCY_OPTIMIZATION.md` and `docs/LATENCY_IMPLEMENTATION.md` for comp
 - [ ] Network control interface
 - [ ] Configuration file support
 - [ ] Expand universal code database for more buttons
+
 
