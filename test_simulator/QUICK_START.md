@@ -1,30 +1,43 @@
 # Quick Start Guide - Virtual TV Simulator
 
-## Step 1: Install Dependencies
+## Step 1: Install Poetry (if not installed)
+
+**WSL/Linux/Mac:**
+```bash
+curl -sSL https://install.python-poetry.org | python3 -
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+**Windows:**
+```powershell
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+```
+
+## Step 2: Install Dependencies
 
 ```bash
 cd test_simulator
-pip install -r requirements.txt
+poetry install
 ```
 
-On Windows, you may also need:
+**Note:** Poetry automatically handles all dependencies, including platform-specific ones (like pywin32 on Windows). No pip needed!
+
+## Step 3: Start the Simulator
+
 ```bash
-pip install pywin32
+poetry run desktop-simulator
 ```
 
-## Step 2: Start the Simulator
-
-**Windows:**
+**Or:**
 ```bash
-python main.py
+poetry run python main.py
 ```
-or double-click `run_simulator.bat`
 
-**Unix/Linux/Mac:**
+**Using Poetry shell (optional):**
 ```bash
-python3 main.py
+poetry shell
+python main.py  # Now you can run directly
 ```
-or run `./run_simulator.sh` (make it executable first: `chmod +x run_simulator.sh`)
 
 The virtual TV window will open and wait for commands.
 
@@ -64,8 +77,8 @@ bin\remote_control.exe
 - Check that you built with `SIMULATOR=1`
 
 **Import errors in Python:**
-- Install missing packages: `pip install -r requirements.txt`
-- On Windows: `pip install pywin32`
+- Use Poetry: `poetry install` (handles everything automatically)
+- If you see "externally-managed-environment" error, Poetry is the solution!
 
 **Connection errors:**
 - Close both programs and restart them
