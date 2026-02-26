@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "phillips-tv-simulator"
+version = "1.0.0"
+description = "Virtual TV Simulator for Phillips Universal Remote Control - 3D/VR Web Interface and Desktop Simulator"
+authors = ["Phillips Remote Control Project"]
+readme = "README.md"
+packages = [{include = "*.py"}]
+
+[tool.poetry.dependencies]
+python = ">=3.8.1"
+flask = "^2.0.0"
+flask-socketio = "^5.0.0"
+python-socketio = "^5.0.0"
+pygame = "^2.0.0"
+requests = "^2.28.0"
+pywin32 = {version = "^300", markers = "sys_platform == 'win32'"}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0.0"
+black = "^23.0.0"
+flake8 = {version = "^6.0.0", python = ">=3.8.1"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+web-server = "web_server:main"
+desktop-simulator = "main:main"
+tv-simulator-web = "web_server:main"
+tv-simulator-desktop = "main:main"
+

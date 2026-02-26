@@ -11,6 +11,7 @@ from virtual_tv import VirtualTV
 from ipc_server import ipc_listener
 
 def main():
+    """Main entry point for Poetry script"""
     print("=" * 60)
     print("  Phillips Universal Remote - Virtual TV Simulator")
     print("=" * 60)
@@ -25,7 +26,7 @@ def main():
         import pygame
     except ImportError:
         print("ERROR: pygame is not installed!")
-        print("Please install it with: pip install pygame")
+        print("Please install it with: poetry install (or pip install pygame)")
         sys.exit(1)
         
     # Check for Windows-specific imports
@@ -35,7 +36,7 @@ def main():
             import win32file
         except ImportError:
             print("ERROR: pywin32 is not installed!")
-            print("Please install it with: pip install pywin32")
+            print("Please install it with: poetry install (or pip install pywin32)")
             sys.exit(1)
     
     # Create command queue for IPC

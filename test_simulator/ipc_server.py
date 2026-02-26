@@ -132,12 +132,15 @@ def ipc_listener(command_queue, stop_event):
         try:
             if connection is None:
                 if sys.platform == 'win32':
+                    # On Windows, accept connection on the pipe
                     if accept_connection(ipc):
                         connection = ipc
+                        print("[IPC] Client connected (Windows)")
                 else:
+                    # On Unix, accept connection and get new socket
                     connection = accept_connection(ipc)
                     if connection:
-                        ipc = None  # Don't accept more connections
+                        print("[IPC] Client connected (Unix)")
                         
             if connection:
                 button_code = read_command(connection)
@@ -146,20 +149,66 @@ def ipc_listener(command_queue, stop_event):
                     print(f"[IPC] Received button code: 0x{button_code:02X}")
                 else:
                     # Connection closed
-                    connection = None
+                    print("[IPC] Client disconnected, waiting for new connection...")
                     if sys.platform == 'win32':
-                        # Recreate pipe for next connection
-                        close_ipc(ipc)
+                        # On Windows, disconnect and recreate pipe
+                        try:
+                            win32file.DisconnectNamedPipe(connection)
+                        except:
+                            pass
+                        close_ipc(connection)
+                        connection = None
                         ipc = setup_ipc()
+                        if not ipc:
+                            print("[IPC] Failed to recreate pipe")
+                            break
+                    else:
+                        # On Unix, close connection and wait for new one
+                        try:
+                            connection.close()
+                        except:
+                            pass
+                        connection = None
             else:
                 time.sleep(0.1)
                 
         except Exception as e:
             print(f"[IPC] Error: {e}")
+            if connection:
+                if sys.platform == 'win32':
+                    try:
+                        win32file.DisconnectNamedPipe(connection)
+                    except:
+                        pass
+                    close_ipc(connection)
+                else:
+                    try:
+                        connection.close()
+                    except:
+                        pass
             connection = None
+            if sys.platform == 'win32':
+                ipc = setup_ipc()
+                if not ipc:
+                    print("[IPC] Failed to recreate pipe after error")
+                    break
             time.sleep(0.1)
             
-    close_ipc(ipc if connection != ipc else connection)
+    # Cleanup
+    if connection:
+        if sys.platform == 'win32':
+            try:
+                win32file.DisconnectNamedPipe(connection)
+            except:
+                pass
+            close_ipc(connection)
+        else:
+            try:
+                connection.close()
+            except:
+                pass
+    if ipc and (sys.platform != 'win32' or connection != ipc):
+        close_ipc(ipc)
 
 if __name__ == "__main__":
     # This will be imported by the main simulator
