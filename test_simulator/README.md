@@ -14,6 +14,22 @@ A game-like virtual TV interface for testing the Phillips Universal Remote Contr
 
 ## Installation
 
+### Using Poetry (Recommended)
+
+1. Install [Poetry](https://python-poetry.org/) if not already installed
+2. Install dependencies:
+```bash
+poetry install
+```
+
+3. Run the simulator:
+```bash
+poetry run web-server        # Web 3D/VR simulator
+poetry run desktop-simulator # Desktop 2D simulator
+```
+
+### Using pip (Alternative)
+
 1. Install Python 3.7 or higher
 2. Install dependencies:
 ```bash
@@ -29,8 +45,16 @@ pip install pywin32
 
 ### Start the Simulator
 
+**With Poetry:**
 ```bash
-python main.py
+poetry run web-server        # Web 3D/VR simulator
+poetry run desktop-simulator # Desktop 2D simulator
+```
+
+**With pip:**
+```bash
+python web_server.py  # Web 3D/VR simulator
+python main.py        # Desktop 2D simulator
 ```
 
 The virtual TV window will open and wait for commands from the remote control program.
