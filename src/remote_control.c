@@ -4,6 +4,9 @@
 #include "../include/connection.h"
 #include "../include/system_handler.h"
 #include "../include/latency.h"
+#ifdef SIMULATOR
+#include "../include/tv_simulator.h"
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -158,6 +161,20 @@ int remote_init(void) {
         fprintf(stderr, "[Remote] Failed to initialize system handler\n");
         return -1;
     }
+    
+    /* Initialize TV simulator if enabled */
+#ifdef SIMULATOR
+    if (tv_simulator_init() != 0) {
+        printf("[Remote] Warning: Could not connect to TV simulator\n");
+        printf("[Remote] Simulator may not be running. Start it with:\n");
+        printf("[Remote]   Desktop: python test_simulator/main.py\n");
+        printf("[Remote]   Web:     python test_simulator/web_server.py\n");
+        printf("[Remote] Continuing without simulator...\n");
+        /* Don't fail initialization if simulator is not available */
+    } else {
+        printf("[Remote] Connected to TV simulator\n");
+    }
+#endif
     
     /* Use system handler for initialization */
     return system_init();

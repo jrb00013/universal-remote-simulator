@@ -11,8 +11,20 @@ LDFLAGS =
 
 # Simulator support (optional)
 # Build with: make SIMULATOR=1
+# Use WEB=1 to use web server instead of local IPC: make SIMULATOR=1 WEB=1
 ifdef SIMULATOR
     CFLAGS += -DSIMULATOR
+    ifdef WEB
+        CFLAGS += -DTV_SIMULATOR_WEB
+        # Use web server version
+        C_SOURCES := $(filter-out $(SRC_DIR)/tv_simulator.c,$(C_SOURCES))
+        ifeq ($(OS),Windows_NT)
+            LDFLAGS += -lws2_32
+        endif
+    else
+        # Use local IPC version (default)
+        C_SOURCES := $(filter-out $(SRC_DIR)/tv_simulator_web.c,$(C_SOURCES))
+    endif
     # Windows named pipes don't need extra libraries (kernel32 is linked by default)
     # Unix sockets don't need extra libraries either
 endif 
@@ -59,7 +71,7 @@ ASM_SOURCES = $(wildcard $(SRC_DIR)/*.s) $(wildcard $(SRC_DIR)/*.S)
 
 # Exclude simulator source if not enabled
 ifndef SIMULATOR
-    C_SOURCES := $(filter-out $(SRC_DIR)/tv_simulator.c,$(C_SOURCES))
+    C_SOURCES := $(filter-out $(SRC_DIR)/tv_simulator.c $(SRC_DIR)/tv_simulator_web.c,$(C_SOURCES))
 endif
 
 # Object files

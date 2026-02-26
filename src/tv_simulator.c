@@ -1,4 +1,5 @@
 #ifdef SIMULATOR
+#ifndef TV_SIMULATOR_WEB
 
 #include "../include/tv_simulator.h"
 #include <stdio.h>
@@ -191,5 +192,6 @@ void tv_simulator_cleanup(void) {
     printf("[Simulator] Disconnected from virtual TV\n");
 }
 
+#endif /* !TV_SIMULATOR_WEB */
 #endif /* SIMULATOR */
 
