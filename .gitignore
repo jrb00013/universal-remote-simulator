@@ -1,0 +1,28 @@
+# Build artifacts
+obj/
+bin/
+*.o
+*.exe
+*.out
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Compiled binaries
+remote_control
+remote_control.exe
+
