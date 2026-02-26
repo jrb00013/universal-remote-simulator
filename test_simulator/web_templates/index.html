@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual TV Simulator - 3D Experience</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            min-width: 250px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+        
+        #ui-overlay h2 {
+            margin-bottom: 15px;
+            color: #4CAF50;
+            font-size: 18px;
+        }
+        
+        .status-item {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        
+        .status-label {
+            color: #aaa;
+            display: inline-block;
+            width: 100px;
+        }
+        
+        .status-value {
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        .status-value.on { color: #4CAF50; }
+        .status-value.off { color: #f44336; }
+        
+        #notification {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 193, 7, 0.9);
+            color: #000;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        #notification.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 12px;
+            z-index: 100;
+        }
+        
+        #controls h3 {
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+        
+        #controls p {
+            margin: 5px 0;
+            color: #aaa;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 24px;
+            z-index: 200;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <div class="loading" id="loading">Loading 3D TV Experience...</div>
+        <div id="ui-overlay">
+            <h2>TV Status</h2>
+            <div class="status-item">
+                <span class="status-label">Power:</span>
+                <span class="status-value" id="power-status">OFF</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Volume:</span>
+                <span class="status-value" id="volume-status">0%</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Channel:</span>
+                <span class="status-value" id="channel-status">1</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">App:</span>
+                <span class="status-value" id="app-status">Home</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Muted:</span>
+                <span class="status-value" id="mute-status">No</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Game Mode:</span>
+                <span class="status-value" id="game-mode-status">OFF</span>
+            </div>
+            <div class="status-item" id="last-button-item" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #333;">
+                <span class="status-label">Last Button:</span>
+                <span class="status-value" id="last-button" style="color: #FFC107;">-</span>
+            </div>
+        </div>
+        
+        <div id="notification"></div>
+        
+        <div id="controls">
+            <h3>Controls</h3>
+            <p><strong>Mouse:</strong> Click & drag to rotate camera</p>
+            <p><strong>Wheel:</strong> Zoom in/out</p>
+            <p><strong>Click Remote:</strong> Press buttons on 3D remote!</p>
+            <p><strong>Space:</strong> Reset camera</p>
+            <p><strong>1-4:</strong> Camera presets</p>
+            <p style="margin-top: 10px; color: #4CAF50; font-weight: bold;">
+                Click the 3D remote control to interact!
+            </p>
+            <p style="margin-top: 10px; color: #FFC107; font-weight: bold;">
+                📺 Streaming: Click YT, NF, PR, HB buttons on remote!
+            </p>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="/static/js/ir-visualization.js"></script>
+    <script src="/static/js/tv-simulator.js"></script>
+</body>
+</html>
+
