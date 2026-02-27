@@ -4,12 +4,22 @@ Web Server for Virtual TV Simulator
 Provides a web-based 3D/VR-like interface accessible via browser
 """
 
-from flask import Flask, render_template, send_from_directory, request
+from flask import Flask, render_template, send_from_directory, request, Response, jsonify
 from flask_socketio import SocketIO, emit
 import threading
 import time
 import sys
 import os
+import base64
+import io
+
+# Optional PIL/Pillow for image format conversion
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+    print("[Web Server] PIL/Pillow not available - JPEG conversion disabled, PNG only")
 
 app = Flask(__name__, 
             template_folder='web_templates',
@@ -43,6 +53,16 @@ tv_state = {
     'notification': None,
 }
 
+# Frame storage for streaming API
+current_frame = {
+    'data': None,  # Base64 encoded image data
+    'timestamp': 0,
+    'format': 'png',
+    'width': 512,
+    'height': 512
+}
+frame_lock = threading.Lock()
+
 # Button code mappings
 BUTTON_CODES = {
     0x01: "YouTube", 0x02: "Netflix", 0x03: "Amazon Prime", 0x04: "HBO Max",
@@ -60,13 +80,32 @@ BUTTON_CODES = {
     0xC0: "Sound Mode", 0xD0: "Multi View", 0xD1: "PIP", 0xD2: "Screen Mirror",
 }
 
-def handle_button_press(button_code):
-    """Handle button press and update TV state"""
+def handle_button_press(button_code, from_hardware=False):
+    """Handle button press and update TV state
+    @param button_code: Button code to handle
+    @param from_hardware: True if this came from hardware interrupt, False for UI clicks
+    """
     button_name = BUTTON_CODES.get(button_code, f"Unknown (0x{button_code:02X})")
     tv_state['last_button'] = button_name
     tv_state['notification'] = f"Button: {button_name}"
     
-    print(f"[Web Server] Button pressed: {button_name} (0x{button_code:02X})")
+    if from_hardware:
+        print(f"[Web Server] Button pressed (from hardware interrupt): {button_name} (0x{button_code:02X})")
+        # Only emit interrupt events for actual hardware interrupts
+        interrupt_data = {
+            'type': 'gpio',
+            'button_code': button_code,
+            'button_name': button_name,
+            'timestamp': time.time()
+        }
+        socketio.emit('hardware_interrupt', interrupt_data)
+        socketio.emit('button_press_interrupt', {
+            'button_code': button_code,
+            'button_name': button_name,
+            'timestamp': time.time()
+        })
+    else:
+        print(f"[Web Server] Button pressed (from UI): {button_name} (0x{button_code:02X})")
     
     # Handle button actions
     if button_code == 0x10:  # Power
@@ -96,11 +135,17 @@ def handle_button_press(button_code):
     elif button_code == 0x14:  # Channel Up
         if tv_state['powered_on']:
             tv_state['channel'] = (tv_state['channel'] % 999) + 1
+            # Switch from app mode to channel mode when changing channels
+            if tv_state.get('current_app') and tv_state['current_app'] != 'Home':
+                tv_state['current_app'] = None  # Clear app to show channel
             tv_state['notification'] = f"Channel: {tv_state['channel']}"
             
     elif button_code == 0x15:  # Channel Down
         if tv_state['powered_on']:
             tv_state['channel'] = ((tv_state['channel'] - 2) % 999) + 1
+            # Switch from app mode to channel mode when changing channels
+            if tv_state.get('current_app') and tv_state['current_app'] != 'Home':
+                tv_state['current_app'] = None  # Clear app to show channel
             tv_state['notification'] = f"Channel: {tv_state['channel']}"
             
     elif button_code == 0x20:  # Home
@@ -175,9 +220,16 @@ def handle_button_press(button_code):
             tv_state['channel_input_time'] = time.time()
             if len(tv_state['channel_input']) >= 3:
                 try:
-                    tv_state['channel'] = int(tv_state['channel_input'])
+                    new_channel = int(tv_state['channel_input'])
+                    if 1 <= new_channel <= 999:
+                        tv_state['channel'] = new_channel
+                        # Switch from app mode to channel mode when entering channel number
+                        if tv_state.get('current_app') and tv_state['current_app'] != 'Home':
+                            tv_state['current_app'] = None  # Clear app to show channel
+                        tv_state['notification'] = f"Channel: {tv_state['channel']}"
+                    else:
+                        tv_state['notification'] = f"Invalid channel: {new_channel} (1-999)"
                     tv_state['channel_input'] = ""
-                    tv_state['notification'] = f"Channel: {tv_state['channel']}"
                 except:
                     tv_state['channel_input'] = ""
     
@@ -208,7 +260,83 @@ def index():
 @app.route('/api/state')
 def get_state():
     """Get current TV state (REST API)"""
-    return tv_state
+    return jsonify(tv_state)
+
+@app.route('/api/frame')
+def get_frame():
+    """Get current TV frame as image (REST API for streaming)
+    
+    Returns:
+        - PNG image by default
+        - JSON with base64 data if ?format=json
+        - JPEG if ?format=jpeg
+    """
+    with frame_lock:
+        if current_frame['data'] is None:
+            # Return a black frame if no frame available
+            if HAS_PIL:
+                img = Image.new('RGB', (512, 512), color='black')
+                img_io = io.BytesIO()
+                img.save(img_io, format='PNG')
+                img_io.seek(0)
+                return Response(img_io.getvalue(), mimetype='image/png')
+            else:
+                # Simple black PNG without PIL (minimal 1x1 black PNG)
+                black_png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
+                return Response(black_png, mimetype='image/png')
+        
+        format_type = request.args.get('format', 'png').lower()
+        
+        if format_type == 'json':
+            # Return JSON with base64 encoded image
+            return jsonify({
+                'frame': current_frame['data'],
+                'timestamp': current_frame['timestamp'],
+                'width': current_frame['width'],
+                'height': current_frame['height'],
+                'format': current_frame['format']
+            })
+        elif format_type == 'jpeg' or format_type == 'jpg':
+            # Decode base64 and convert to JPEG (requires PIL/Pillow)
+            if not HAS_PIL:
+                return jsonify({'error': 'JPEG format requires PIL/Pillow. Install with: pip install Pillow'}), 501
+            try:
+                img_data = base64.b64decode(current_frame['data'])
+                img = Image.open(io.BytesIO(img_data))
+                if img.format != 'JPEG':
+                    # Convert to RGB if needed (remove alpha channel)
+                    if img.mode in ('RGBA', 'LA', 'P'):
+                        rgb_img = Image.new('RGB', img.size, (0, 0, 0))
+                        rgb_img.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                        img = rgb_img
+                    img_io = io.BytesIO()
+                    img.save(img_io, format='JPEG', quality=85)
+                    img_io.seek(0)
+                    return Response(img_io.getvalue(), mimetype='image/jpeg')
+            except Exception as e:
+                print(f"[Web Server] Error converting frame to JPEG: {e}")
+                return jsonify({'error': str(e)}), 500
+        else:
+            # Return PNG (default)
+            try:
+                img_data = base64.b64decode(current_frame['data'])
+                return Response(img_data, mimetype='image/png')
+            except Exception as e:
+                print(f"[Web Server] Error decoding frame: {e}")
+                return jsonify({'error': str(e)}), 500
+
+@app.route('/api/frame/info')
+def get_frame_info():
+    """Get frame metadata (REST API)"""
+    with frame_lock:
+        return jsonify({
+            'has_frame': current_frame['data'] is not None,
+            'timestamp': current_frame['timestamp'],
+            'width': current_frame['width'],
+            'height': current_frame['height'],
+            'format': current_frame['format'],
+            'age_seconds': time.time() - current_frame['timestamp'] if current_frame['timestamp'] > 0 else None
+        })
 
 @socketio.on('connect')
 def handle_connect():
@@ -229,18 +357,52 @@ def handle_disconnect():
 
 @socketio.on('button_press')
 def handle_button_press_ws(data):
-    """Handle button press from web client via WebSocket"""
+    """Handle button press from web client via WebSocket (UI clicks, not hardware)"""
     button_code = data.get('button_code')
     if button_code is not None:
-        handle_button_press(button_code)
+        handle_button_press(button_code, from_hardware=False)
+
+@socketio.on('update_volume')
+def handle_update_volume(data):
+    """Handle volume update from client (including volume stabilizer)"""
+    volume = data.get('volume')
+    if volume is not None and 0 <= volume <= 100:
+        old_volume = tv_state['volume']
+        tv_state['volume'] = volume
+        print(f"[Web Server] Volume updated (from stabilizer): {old_volume}% -> {volume}%")
+        # Broadcast updated state to all clients
+        socketio.emit('tv_state_update', tv_state)
+        print(f"[Web Server] Volume state broadcasted to all clients")
+    else:
+        print(f"[Web Server] Invalid volume update received: {volume}")
+
+@socketio.on('frame_update')
+def handle_frame_update(data):
+    """Handle frame update from client (for streaming API)"""
+    frame_data = data.get('frame_data')  # Base64 encoded image
+    width = data.get('width', 512)
+    height = data.get('height', 512)
+    format_type = data.get('format', 'png')
+    
+    if frame_data:
+        with frame_lock:
+            current_frame['data'] = frame_data
+            current_frame['timestamp'] = time.time()
+            current_frame['width'] = width
+            current_frame['height'] = height
+            current_frame['format'] = format_type
+        # Only log occasionally to avoid spam
+        if int(time.time()) % 10 == 0:
+            print(f"[Web Server] Frame updated: {width}x{height} ({format_type})")
 
 @app.route('/api/button', methods=['POST'])
 def api_button_press():
-    """Handle button press via REST API"""
+    """Handle button press via REST API (from C code/hardware interrupts)"""
     data = request.get_json()
     button_code = data.get('button_code')
+    from_hardware = data.get('from_hardware', True)  # Default to True for API calls
     if button_code is not None:
-        handle_button_press(button_code)
+        handle_button_press(button_code, from_hardware=from_hardware)
         return {'status': 'success', 'button_code': button_code}
     return {'status': 'error', 'message': 'Invalid button_code'}, 400
 
@@ -259,7 +421,7 @@ def start_ipc_listener():
             try:
                 if not command_queue.empty():
                     button_code = command_queue.get_nowait()
-                    handle_button_press(button_code)
+                    handle_button_press(button_code, from_hardware=True)
             except:
                 pass
             time.sleep(0.1)
