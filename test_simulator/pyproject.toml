@@ -17,8 +17,23 @@ pywin32 = {version = "^300", markers = "sys_platform == 'win32'"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0.0"
+pytest-timeout = "^2.1.0"
 black = "^23.0.0"
 flake8 = {version = "^6.0.0", python = ">=3.8.1"}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "functional: Functional tests",
+    "slow: Slow running tests",
+    "requires_server: Tests that require server to be running",
+]
 
 [build-system]
 requires = ["poetry-core"]

@@ -971,9 +971,20 @@ function highlightRemoteButton(buttonName) {
     
     // Reset previous button
     if (activeButton) {
-        activeButton.material.emissive.setHex(0x000000);
-        activeButton.material.emissiveIntensity = 0;
-        activeButton.position.z = 0.03;
+        // Handle both single meshes and groups
+        if (activeButton.isGroup) {
+            activeButton.children.forEach(child => {
+                if (child.material && child.material.emissive) {
+                    child.material.emissive.setHex(0x000000);
+                    child.material.emissiveIntensity = 0;
+                }
+            });
+            activeButton.position.z = 0;
+        } else if (activeButton.material) {
+            activeButton.material.emissive.setHex(0x000000);
+            activeButton.material.emissiveIntensity = 0;
+            activeButton.position.z = 0;
+        }
     }
     
     // Button name mapping (handle variations)
@@ -998,23 +1009,43 @@ function highlightRemoteButton(buttonName) {
     // Normalize button name
     const normalizedName = buttonNameMap[buttonName] || buttonName;
     
-    // Find and highlight button
-    remoteGroup.children.forEach(child => {
-        if (child.userData && child.userData.buttonName) {
-            // Exact match or partial match
-            if (child.userData.buttonName === normalizedName || 
-                child.userData.buttonName === buttonName ||
-                buttonName.includes(child.userData.buttonName) ||
-                child.userData.buttonName.includes(buttonName)) {
-                activeButton = child;
-                child.material.emissive.setHex(0x00ff00);
-                child.material.emissiveIntensity = 1;
-                buttonPressTime = Date.now();
-                // Animate button press
-                child.position.z = 0.02;
+    // Find and highlight button (search recursively for groups)
+    function findButton(obj) {
+        if (obj.userData && obj.userData.buttonName) {
+            if (obj.userData.buttonName === normalizedName || 
+                obj.userData.buttonName === buttonName ||
+                buttonName.includes(obj.userData.buttonName) ||
+                obj.userData.buttonName.includes(buttonName)) {
+                return obj;
             }
         }
-    });
+        for (let child of obj.children) {
+            const found = findButton(child);
+            if (found) return found;
+        }
+        return null;
+    }
+    
+    const button = findButton(remoteGroup);
+    if (button) {
+        activeButton = button;
+        buttonPressTime = Date.now();
+        
+        // Highlight button (handle groups)
+        if (button.isGroup) {
+            button.children.forEach(child => {
+                if (child.material && child.material.emissive !== undefined) {
+                    child.material.emissive.setHex(0x00ff00);
+                    child.material.emissiveIntensity = 0.8;
+                }
+            });
+            button.position.z = -0.01; // Press animation
+        } else if (button.material) {
+            button.material.emissive.setHex(0x00ff00);
+            button.material.emissiveIntensity = 0.8;
+            button.position.z = -0.01; // Press animation
+        }
+    }
 }
 
 // Show notification
@@ -1208,7 +1239,7 @@ function createTV() {
     
     // IR receiver indicator (small LED)
     const irReceiverGeometry = new THREE.SphereGeometry(0.02, 8, 8);
-    const irReceiverMaterial = new THREE.MeshBasicMaterial({
+    const irReceiverMaterial = new THREE.MeshStandardMaterial({
         color: 0x00ff00,
         emissive: 0x00ff00,
         emissiveIntensity: 0.5
@@ -1241,17 +1272,42 @@ function createTV() {
 function createRemoteControl() {
     remoteGroup = new THREE.Group();
     
-    // Remote body
-    const bodyGeometry = new THREE.BoxGeometry(0.3, 0.8, 0.05);
+    // Remote body with rounded edges (using beveled box)
+    const bodyGeometry = new THREE.BoxGeometry(0.3, 0.8, 0.05, 8, 8, 1);
     const bodyMaterial = new THREE.MeshStandardMaterial({
-        color: 0x2a2a2a,
-        roughness: 0.4,
-        metalness: 0.1
+        color: 0x1a1a1a,
+        roughness: 0.3,
+        metalness: 0.15,
+        emissive: 0x000000,
+        emissiveIntensity: 0
     });
     const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
     body.castShadow = true;
+    body.receiveShadow = true;
     remoteGroup.add(body);
     remoteMesh = body;
+    
+    // Add subtle texture detail with a darker front panel
+    const frontPanelGeometry = new THREE.PlaneGeometry(0.28, 0.78);
+    const frontPanelMaterial = new THREE.MeshStandardMaterial({
+        color: 0x151515,
+        roughness: 0.5,
+        metalness: 0.1
+    });
+    const frontPanel = new THREE.Mesh(frontPanelGeometry, frontPanelMaterial);
+    frontPanel.position.z = 0.026;
+    remoteGroup.add(frontPanel);
+    
+    // Add brand logo area (subtle detail)
+    const logoGeometry = new THREE.PlaneGeometry(0.12, 0.03);
+    const logoMaterial = new THREE.MeshStandardMaterial({
+        color: 0x333333,
+        roughness: 0.6,
+        metalness: 0.2
+    });
+    const logo = new THREE.Mesh(logoGeometry, logoMaterial);
+    logo.position.set(0, 0.35, 0.027);
+    remoteGroup.add(logo);
     
     // Power button (top)
     const powerButton = createButton(0.08, 0.08, 0x10, 'Power', 0xff0000);
@@ -1294,6 +1350,11 @@ function createRemoteControl() {
         remoteGroup.add(numButton);
     }
     
+    // Zero button (below number pad, centered)
+    const zeroButton = createButton(0.05, 0.05, 0x50, '0', 0xffffff);
+    zeroButton.position.set(0, -0.31, 0.03);
+    remoteGroup.add(zeroButton);
+    
     // Streaming service buttons (below number pad)
     const streamingButtons = [
         { name: 'YouTube', code: 0x01, color: 0xff0000, label: 'YT' },
@@ -1313,16 +1374,52 @@ function createRemoteControl() {
         remoteGroup.add(streamButton);
     }
     
-    // IR emitter (red LED on top)
-    const irEmitterGeometry = new THREE.SphereGeometry(0.015, 8, 8);
-    const irEmitterMaterial = new THREE.MeshBasicMaterial({
+    // IR emitter (red LED on top) with glow effect
+    const irEmitterGeometry = new THREE.SphereGeometry(0.015, 16, 16);
+    const irEmitterMaterial = new THREE.MeshStandardMaterial({
         color: 0xff0000,
         emissive: 0xff0000,
-        emissiveIntensity: 0.3
+        emissiveIntensity: 0.5
     });
     const irEmitter = new THREE.Mesh(irEmitterGeometry, irEmitterMaterial);
     irEmitter.position.set(0, 0.4, 0.03);
     remoteGroup.add(irEmitter);
+    
+    // Add button labels using text geometry (simplified - using small planes as placeholders)
+    // Volume Up label
+    const volUpLabel = createLabelPlane('VOL+', 0.04, 0.01);
+    volUpLabel.position.set(-0.08, 0.15, 0.04);
+    remoteGroup.add(volUpLabel);
+    
+    // Volume Down label
+    const volDownLabel = createLabelPlane('VOL-', 0.04, 0.01);
+    volDownLabel.position.set(-0.08, 0.05, 0.04);
+    remoteGroup.add(volDownLabel);
+    
+    // Channel Up label
+    const chUpLabel = createLabelPlane('CH+', 0.04, 0.01);
+    chUpLabel.position.set(0.08, 0.15, 0.04);
+    remoteGroup.add(chUpLabel);
+    
+    // Channel Down label
+    const chDownLabel = createLabelPlane('CH-', 0.04, 0.01);
+    chDownLabel.position.set(0.08, 0.05, 0.04);
+    remoteGroup.add(chDownLabel);
+    
+    // Add subtle side details (grip texture simulation)
+    const sideDetailGeometry = new THREE.PlaneGeometry(0.28, 0.05);
+    const sideDetailMaterial = new THREE.MeshStandardMaterial({
+        color: 0x0f0f0f,
+        roughness: 0.7,
+        metalness: 0.05
+    });
+    const topGrip = new THREE.Mesh(sideDetailGeometry, sideDetailMaterial);
+    topGrip.position.set(0, 0.25, 0.027);
+    remoteGroup.add(topGrip);
+    
+    const bottomGrip = new THREE.Mesh(sideDetailGeometry, sideDetailMaterial);
+    bottomGrip.position.set(0, -0.25, 0.027);
+    remoteGroup.add(bottomGrip);
     
     // Position remote in front of camera (on a virtual table)
     remoteGroup.position.set(2, 0.8, 2);
@@ -1331,21 +1428,70 @@ function createRemoteControl() {
     scene.add(remoteGroup);
 }
 
-// Create a button for the remote
+// Helper function to create label planes (simplified text representation)
+function createLabelPlane(text, width, height) {
+    const geometry = new THREE.PlaneGeometry(width, height);
+    const material = new THREE.MeshStandardMaterial({
+        color: 0x666666,
+        roughness: 0.8,
+        metalness: 0.1,
+        emissive: 0x333333,
+        emissiveIntensity: 0.1
+    });
+    const plane = new THREE.Mesh(geometry, material);
+    plane.userData.labelText = text;
+    return plane;
+}
+
+// Create a button for the remote with enhanced details
 function createButton(width, height, buttonCode, buttonName, color) {
-    const buttonGeometry = new THREE.BoxGeometry(width, height, 0.02);
+    const buttonGroup = new THREE.Group();
+    
+    // Main button body with beveled edges (using more segments for smoother look)
+    const buttonGeometry = new THREE.BoxGeometry(width, height, 0.02, 4, 4, 1);
     const buttonMaterial = new THREE.MeshStandardMaterial({
         color: color,
-        roughness: 0.6,
-        metalness: 0.2,
+        roughness: 0.5,
+        metalness: 0.25,
         emissive: 0x000000,
         emissiveIntensity: 0
     });
     const button = new THREE.Mesh(buttonGeometry, buttonMaterial);
-    button.userData.buttonCode = buttonCode;
-    button.userData.buttonName = buttonName;
     button.castShadow = true;
-    return button;
+    button.receiveShadow = true;
+    buttonGroup.add(button);
+    
+    // Add button top surface with slight inset for depth
+    const topSurfaceGeometry = new THREE.PlaneGeometry(width * 0.9, height * 0.9);
+    const topSurfaceMaterial = new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.3,
+        metalness: 0.3,
+        emissive: color,
+        emissiveIntensity: 0.05
+    });
+    const topSurface = new THREE.Mesh(topSurfaceGeometry, topSurfaceMaterial);
+    topSurface.position.z = 0.011;
+    buttonGroup.add(topSurface);
+    
+    // Add button label for number buttons and key buttons
+    if (buttonName.match(/^\d+$/) || ['Power', 'Home'].includes(buttonName)) {
+        const labelGeometry = new THREE.PlaneGeometry(width * 0.6, height * 0.6);
+        const labelMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            roughness: 0.9,
+            metalness: 0.1,
+            transparent: true,
+            opacity: 0.9
+        });
+        const label = new THREE.Mesh(labelGeometry, labelMaterial);
+        label.position.z = 0.012;
+        buttonGroup.add(label);
+    }
+    
+    buttonGroup.userData.buttonCode = buttonCode;
+    buttonGroup.userData.buttonName = buttonName;
+    return buttonGroup;
 }
 
 // Update TV screen content
@@ -1810,9 +1956,11 @@ function updateTVScreen(state) {
                 }
             } else {
                 // Rich content display based on app or TV channel
-                const appName = state.current_app || 'Home';
+                const appName = state.current_app;
                 const time = Date.now() * 0.001;
                 
+                // If current_app is explicitly set to an app name, show that app
+                // Otherwise (null/undefined/empty), show TV channel content
                 if (appName === 'Home') {
                     // Home screen with animated grid of app icons
                     drawHomeScreen(ctx, canvas, brightness, time, state);
@@ -1828,12 +1976,12 @@ function updateTVScreen(state) {
                 } else if (appName === 'HBO Max') {
                     // HBO Max-style content
                     drawHBOMaxContent(ctx, canvas, brightness, time, state);
-            } else {
-                // Show TV show content based on channel
-                // This handles both explicit channel mode and when current_app is None/empty
-                const tvShow = getTVShow(state.channel);
-                drawTVShowContent(ctx, canvas, brightness, time, state, tvShow);
-            }
+                } else {
+                    // Show TV show content based on channel
+                    // This handles both explicit channel mode and when current_app is None/empty
+                    const tvShow = getTVShow(state.channel);
+                    drawTVShowContent(ctx, canvas, brightness, time, state, tvShow);
+                }
             }
             
             // Enhanced volume visualization with waveform
@@ -4599,8 +4747,13 @@ function initControls() {
         const intersects = raycaster.intersectObjects(remoteGroup.children, true);
         
         if (intersects.length > 0) {
-            const button = intersects[0].object;
-            if (button.userData.buttonCode !== undefined) {
+            // Find the button group (traverse up parent chain if needed)
+            let button = intersects[0].object;
+            while (button && button.userData.buttonCode === undefined && button.parent) {
+                button = button.parent;
+            }
+            
+            if (button && button.userData.buttonCode !== undefined) {
                 // Visual feedback: highlight button immediately
                 highlightRemoteButton(button.userData.buttonName);
                 
@@ -4632,8 +4785,18 @@ function initControls() {
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(remoteGroup.children, true);
             
-            if (intersects.length > 0 && intersects[0].object.userData.buttonCode !== undefined) {
-                canvas.style.cursor = 'pointer';
+            if (intersects.length > 0) {
+                // Find the button group (traverse up parent chain if needed)
+                let button = intersects[0].object;
+                while (button && button.userData.buttonCode === undefined && button.parent) {
+                    button = button.parent;
+                }
+                
+                if (button && button.userData.buttonCode !== undefined) {
+                    canvas.style.cursor = 'pointer';
+                } else {
+                    canvas.style.cursor = 'grab';
+                }
             } else {
                 canvas.style.cursor = 'grab';
             }

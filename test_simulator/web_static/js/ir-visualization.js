@@ -109,9 +109,11 @@ function initIRVisualization() {
     panel.id = 'ir-visualization-panel';
     panel.style.cssText = `
         position: fixed;
-        top: 20px;
-        right: 20px;
+        top: 350px;
+        left: 20px;
         width: 400px;
+        max-height: calc(100vh - 370px);
+        overflow-y: auto;
         background: rgba(20, 20, 30, 0.95);
         border: 2px solid rgba(100, 150, 255, 0.8);
         border-radius: 10px;

@@ -136,16 +136,16 @@ def handle_button_press(button_code, from_hardware=False):
         if tv_state['powered_on']:
             tv_state['channel'] = (tv_state['channel'] % 999) + 1
             # Switch from app mode to channel mode when changing channels
-            if tv_state.get('current_app') and tv_state['current_app'] != 'Home':
-                tv_state['current_app'] = None  # Clear app to show channel
+            # Clear current_app (including 'Home') to show TV channel content
+            tv_state['current_app'] = None
             tv_state['notification'] = f"Channel: {tv_state['channel']}"
             
     elif button_code == 0x15:  # Channel Down
         if tv_state['powered_on']:
             tv_state['channel'] = ((tv_state['channel'] - 2) % 999) + 1
             # Switch from app mode to channel mode when changing channels
-            if tv_state.get('current_app') and tv_state['current_app'] != 'Home':
-                tv_state['current_app'] = None  # Clear app to show channel
+            # Clear current_app (including 'Home') to show TV channel content
+            tv_state['current_app'] = None
             tv_state['notification'] = f"Channel: {tv_state['channel']}"
             
     elif button_code == 0x20:  # Home
@@ -224,8 +224,8 @@ def handle_button_press(button_code, from_hardware=False):
                     if 1 <= new_channel <= 999:
                         tv_state['channel'] = new_channel
                         # Switch from app mode to channel mode when entering channel number
-                        if tv_state.get('current_app') and tv_state['current_app'] != 'Home':
-                            tv_state['current_app'] = None  # Clear app to show channel
+                        # Clear current_app (including 'Home') to show TV channel content
+                        tv_state['current_app'] = None
                         tv_state['notification'] = f"Channel: {tv_state['channel']}"
                     else:
                         tv_state['notification'] = f"Invalid channel: {new_channel} (1-999)"
