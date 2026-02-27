@@ -349,5 +349,34 @@ int handler_trigger_universal_protocol_attempt(uint8_t protocol, uint32_t code, 
  */
 int handler_trigger_universal_brand_detected(uint8_t brand, const char* brand_name);
 
+/* Interrupt callback functions (bridges assembly -> C -> JavaScript) */
+
+/**
+ * @brief C callback function called from assembly interrupt handlers
+ * This is the bridge between hardware interrupts and C handlers
+ */
+void interrupt_callback(void);
+
+/**
+ * @brief Set interrupt type before interrupt occurs
+ * @param type 0 = timer interrupt, 1 = GPIO interrupt (button press)
+ */
+void interrupt_set_type(int type);
+
+/**
+ * @brief Set button code from hardware interrupt detection
+ * @param button_code The button code detected by hardware GPIO
+ * 
+ * This function should be called by hardware-specific code when a button
+ * press is detected, before triggering the interrupt.
+ */
+void interrupt_set_button(unsigned char button_code);
+
+/**
+ * @brief Get last interrupt timestamp
+ * @return Timestamp of last interrupt
+ */
+uint32_t interrupt_get_timestamp(void);
+
 #endif /* HANDLERS_H */
 

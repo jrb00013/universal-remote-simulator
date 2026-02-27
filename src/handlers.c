@@ -1,5 +1,6 @@
 #include "../include/handlers.h"
 #include "../include/remote_control.h"
+#include "../include/remote_buttons.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -531,12 +532,97 @@ int handler_setup_interrupt(int interrupt_number) {
     return 0;
 }
 
+/* Interrupt state tracking */
+static volatile unsigned char last_gpio_state = 0;
+static volatile uint32_t interrupt_timestamp = 0;
+static volatile int interrupt_type = 0; /* 0 = timer, 1 = GPIO */
+static volatile unsigned char pending_button_code = 0; /* Button code from hardware interrupt */
+
+/**
+ * @brief Read GPIO state to detect button press (platform-specific)
+ * @return Button code or 0 if no button pressed
+ * 
+ * This function should be implemented to read actual GPIO pins in hardware.
+ * For simulation, we use a shared variable set by the interrupt handler.
+ */
+static unsigned char read_gpio_button_state(void) {
+    /* In real hardware, this would:
+     * 1. Read GPIO pin states
+     * 2. Decode button matrix
+     * 3. Return button code
+     * 
+     * For simulation, we use pending_button_code set by interrupt_set_button()
+     */
+    unsigned char button = pending_button_code;
+    pending_button_code = 0; /* Clear after reading */
+    return button;
+}
+
+/**
+ * @brief Set button code from hardware interrupt (called before interrupt_callback)
+ * @param button_code The button code detected by hardware
+ * 
+ * This bridges hardware detection -> interrupt callback -> C handler
+ */
+void interrupt_set_button(unsigned char button_code) {
+    interrupt_set_type(1); /* GPIO interrupt */
+    pending_button_code = button_code;
+}
+
 /**
  * @brief C callback function for interrupt handlers (called from assembly)
+ * This bridges hardware interrupts (assembly) -> C handlers -> JavaScript (via WebSocket)
  */
 void interrupt_callback(void) {
-    if (interrupt_callback_storage != NULL) {
-        interrupt_callback_storage();
+    /* Get current timestamp */
+    interrupt_timestamp = (uint32_t)time(NULL);
+    
+    /* Check if this is a GPIO interrupt (button press) */
+    if (interrupt_type == 1) {
+        /* Read GPIO state to detect which button was pressed */
+        unsigned char button_code = read_gpio_button_state();
+        
+        if (button_code != 0 && button_code != last_gpio_state) {
+            /* Button press detected - trigger C command chain */
+            printf("[Interrupt] Button press detected: 0x%02X\n", button_code);
+            
+            /* Trigger hardware interrupt event */
+            if (registered_handlers.interrupt_handler != NULL) {
+                registered_handlers.interrupt_handler();
+            }
+            
+            /* Trigger button press handler - this is the C command */
+            if (registered_handlers.button_pressed != NULL) {
+                const char* button_name = get_button_name(button_code);
+                registered_handlers.button_pressed(button_code, button_name);
+            }
+            
+            /* Also trigger via handler system for full event chain */
+            handler_trigger_button_pressed(button_code);
+            
+            /* Update last state */
+            last_gpio_state = button_code;
+        }
+    } else {
+        /* Timer interrupt - handle IR timing */
+        if (registered_handlers.interrupt_handler != NULL) {
+            registered_handlers.interrupt_handler();
+        }
     }
+}
+
+/**
+ * @brief Set interrupt type (called before interrupt occurs)
+ * @param type 0 = timer, 1 = GPIO
+ */
+void interrupt_set_type(int type) {
+    interrupt_type = type;
+}
+
+/**
+ * @brief Get last interrupt timestamp
+ */
+uint32_t interrupt_get_timestamp(void) {
+    return interrupt_timestamp;
 }
 
