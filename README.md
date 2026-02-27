@@ -1,6 +1,6 @@
 # Universal Remote and 3D Simulator
 
-A C programming project for programming and controlling a Phillips universal remote control device.
+A C programming project for programming and controlling a Phillips universal remote control device, as well as a 3D TV simulation experience for testing.
 
 ## Features
 
