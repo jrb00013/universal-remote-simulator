@@ -1,4 +1,4 @@
-# 🚀 START HERE - Quick Run Guide
+# START HERE - Quick Run Guide
 
 ## Prerequisites: Install Poetry (Required!)
 
