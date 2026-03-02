@@ -1,0 +1,44 @@
+{
+  "presets": [
+    {
+      "name": "living_room_evening",
+      "description": "Power on, HDMI 2, volume 40",
+      "buttons": [
+        { "button_code": 16, "delay_ms": 0 },
+        { "button_code": 37, "delay_ms": 3500 },
+        { "button_code": 17, "delay_ms": 500 }
+      ]
+    },
+    {
+      "name": "gaming",
+      "description": "Power on, Game Mode, volume 50",
+      "buttons": [
+        { "button_code": 16, "delay_ms": 0 },
+        { "button_code": 160, "delay_ms": 3500 },
+        { "button_code": 17, "delay_ms": 300 }
+      ]
+    },
+    {
+      "name": "netflix_night",
+      "description": "Power on, Netflix app",
+      "buttons": [
+        { "button_code": 16, "delay_ms": 0 },
+        { "button_code": 2, "delay_ms": 3500 }
+      ]
+    }
+  ],
+  "time_rules": [
+    {
+      "time": "19:00",
+      "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+      "action": "apply_preset",
+      "preset_name": "living_room_evening"
+    },
+    {
+      "time": "22:30",
+      "days": ["sun", "mon", "tue", "wed", "thu"],
+      "action": "apply_preset",
+      "preset_name": "netflix_night"
+    }
+  ]
+}
