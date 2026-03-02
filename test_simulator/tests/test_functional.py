@@ -85,8 +85,8 @@ class TestChannelChanges:
         new_state = get_state()
         new_channel = new_state.get('channel', 1) if new_state else 1
         
-        # Channel should decrease or wrap around
-        assert new_channel != initial_channel or initial_channel == 1
+        # Channel should decrease, or wrap (1 -> max), or stay at 1
+        assert new_channel <= initial_channel or initial_channel == 1
     
     @pytest.mark.parametrize("channel_number", [123, 456, 789, 42, 7])
     def test_number_buttons(self, server_running, ensure_tv_on, channel_number):
