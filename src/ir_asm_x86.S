@@ -1,12 +1,15 @@
 /**
- * @file ir_asm_x86.s
+ * @file ir_asm_x86.S
  * @brief x86/x86-64 assembly implementation for IR transmission
  * 
  * This file contains assembly routines for precise timing and IR protocol
  * encoding on x86/x86-64 platforms (PC, embedded x86 systems).
- * 
- * Compile with: gcc -c ir_asm_x86.s -o ir_asm_x86.o
  */
+
+/* Match include/ir_asm.h - do not include C header in assembly */
+#ifndef CARRIER_PERIOD
+#define CARRIER_PERIOD 26
+#endif
 
 #if defined(__x86_64__) || defined(_M_X64)
     /* x86-64 implementation */

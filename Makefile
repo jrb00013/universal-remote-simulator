@@ -29,13 +29,15 @@ ifdef SIMULATOR
     # Unix sockets don't need extra libraries either
 endif 
 
-# Platform detection for assembly files
+# Platform detection for assembly files and POSIX
 UNAME_S := $(shell uname -s 2>/dev/null || echo "Windows")
 ifeq ($(UNAME_S),Linux)
     PLATFORM = linux
+    CFLAGS += -D_POSIX_C_SOURCE=199309L
 endif
 ifeq ($(UNAME_S),Darwin)
     PLATFORM = macos
+    CFLAGS += -D_POSIX_C_SOURCE=199309L
 endif
 ifeq ($(OS),Windows_NT)
     PLATFORM = windows
@@ -44,13 +46,13 @@ endif
 # Detect architecture
 ARCH := $(shell uname -m 2>/dev/null || echo "x86_64")
 ifeq ($(ARCH),x86_64)
-    ASM_FILE = ir_asm_x86.s
+    ASM_FILE = ir_asm_x86.S
 endif
 ifeq ($(ARCH),i386)
-    ASM_FILE = ir_asm_x86.s
+    ASM_FILE = ir_asm_x86.S
 endif
 ifeq ($(ARCH),i686)
-    ASM_FILE = ir_asm_x86.s
+    ASM_FILE = ir_asm_x86.S
 endif
 ifeq ($(ARCH),armv7l)
     ASM_FILE = ir_asm_arm.s
@@ -67,7 +69,8 @@ BIN_DIR = bin
 
 # Source files
 C_SOURCES = $(wildcard $(SRC_DIR)/*.c)
-ASM_SOURCES = $(wildcard $(SRC_DIR)/*.s) $(wildcard $(SRC_DIR)/*.S)
+# Interrupt handler assembly (ISR) only. IR timing uses C fallback for portability.
+ASM_SOURCES = $(SRC_DIR)/interrupt_handlers.S
 
 # Exclude simulator source if not enabled
 ifndef SIMULATOR
@@ -76,23 +79,12 @@ endif
 
 # Object files
 C_OBJECTS = $(C_SOURCES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
-ASM_OBJECTS = $(ASM_SOURCES:$(SRC_DIR)/%.s=$(OBJ_DIR)/%.o) $(ASM_SOURCES:$(SRC_DIR)/%.S=$(OBJ_DIR)/%.o)
+ASM_OBJECTS = $(patsubst $(SRC_DIR)/%.s,$(OBJ_DIR)/%.o,$(filter %.s,$(ASM_SOURCES))) $(patsubst $(SRC_DIR)/%.S,$(OBJ_DIR)/%.o,$(filter %.S,$(ASM_SOURCES)))
 OBJECTS = $(C_OBJECTS) $(ASM_OBJECTS)
 
-# Use C fallback if no assembly file found or if explicitly requested
-USE_ASM = 1
-ifneq ($(ASM_FILE),)
-    ifeq ($(wildcard $(SRC_DIR)/$(ASM_FILE)),)
-        USE_ASM = 0
-    endif
-else
-    USE_ASM = 0
-endif
-
-# Add C fallback flag if not using assembly
-ifeq ($(USE_ASM),0)
-    CFLAGS += -DIR_USE_C_FALLBACK
-endif
+# Use C fallback for IR timing (ir_asm_c.c); interrupt_handlers.S provides ISR only
+USE_ASM = 0
+CFLAGS += -DIR_USE_C_FALLBACK
 
 # Target executable
 TARGET = $(BIN_DIR)/remote_control
@@ -128,7 +120,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.s
 
 # Compile assembly source files (.S - preprocessed)
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.S
-	$(AS) $(ASFLAGS) -c $< -o $@
+	$(CC) $(ASFLAGS) $(INCLUDES) -c $< -o $@
 
 # Clean build artifacts
 clean:
