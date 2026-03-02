@@ -1,14 +1,21 @@
 """
 Unit tests for Virtual TV Simulator
-Tests individual components and functions
+Tests individual components and functions.
+All file paths use SIMULATOR_ROOT so tests run from repo root or test_simulator.
 """
 import pytest
 import sys
 import os
-import importlib.util
 
 # Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
+SIMULATOR_ROOT = os.path.dirname(TESTS_DIR)
+sys.path.insert(0, SIMULATOR_ROOT)
+
+
+def _path(*parts):
+    """Path relative to test_simulator root."""
+    return os.path.join(SIMULATOR_ROOT, *parts)
 
 
 class TestImports:
@@ -42,73 +49,107 @@ class TestImports:
 
 
 class TestFileStructure:
-    """Test that all required files exist"""
+    """Test that all required files exist (paths relative to test_simulator root)."""
     
     def test_web_server_exists(self):
         """Test web_server.py exists"""
-        assert os.path.exists('web_server.py')
+        assert os.path.isfile(_path('web_server.py'))
     
     def test_main_exists(self):
         """Test main.py exists"""
-        assert os.path.exists('main.py')
+        assert os.path.isfile(_path('main.py'))
     
     def test_virtual_tv_exists(self):
         """Test virtual_tv.py exists"""
-        assert os.path.exists('virtual_tv.py')
+        assert os.path.isfile(_path('virtual_tv.py'))
     
     def test_ipc_server_exists(self):
         """Test ipc_server.py exists"""
-        assert os.path.exists('ipc_server.py')
+        assert os.path.isfile(_path('ipc_server.py'))
     
     def test_html_template_exists(self):
         """Test HTML template exists"""
-        assert os.path.exists('web_templates/index.html')
+        assert os.path.isfile(_path('web_templates', 'index.html'))
     
     def test_js_file_exists(self):
         """Test JavaScript file exists"""
-        assert os.path.exists('web_static/js/tv-simulator.js')
+        assert os.path.isfile(_path('web_static', 'js', 'tv-simulator.js'))
     
     def test_requirements_exists(self):
         """Test requirements.txt exists"""
-        assert os.path.exists('requirements.txt')
+        assert os.path.isfile(_path('requirements.txt'))
+    
+    def test_button_codes_exists(self):
+        """Test button_codes.py exists (single source of truth for codes)."""
+        assert os.path.isfile(_path('button_codes.py'))
+
+    def test_brand_detection_exists(self):
+        """Test brand_detection.py exists (keyword-based brand detection)."""
+        assert os.path.isfile(_path('brand_detection.py'))
+
+    def test_scheduler_exists(self):
+        """Test scheduler.py exists (autonomous time rules + presets)."""
+        assert os.path.isfile(_path('scheduler.py'))
+
+    def test_autonomous_config_exists(self):
+        """Test autonomous_config.json exists for scheduler."""
+        assert os.path.isfile(_path('autonomous_config.json'))
+
+    def test_ir_synthetic_exists(self):
+        """Test ir_synthetic.py exists (synthetic NEC/RC5/RC6 pulse-length generator)."""
+        assert os.path.isfile(_path('ir_synthetic.py'))
+
+    def test_protocol_classifier_exists(self):
+        """Test protocol_classifier.py exists (IR protocol classifier)."""
+        assert os.path.isfile(_path('protocol_classifier.py'))
+
+    def test_brand_detection_test_file_exists(self):
+        """Test test_brand_detection.py exists (ML audit: brand detection)."""
+        assert os.path.isfile(_path('tests', 'test_brand_detection.py'))
+
+    def test_protocol_classifier_test_file_exists(self):
+        """Test test_protocol_classifier.py exists (ML audit: protocol classifier)."""
+        assert os.path.isfile(_path('tests', 'test_protocol_classifier.py'))
+
+    def test_ir_synthetic_test_file_exists(self):
+        """Test test_ir_synthetic.py exists (ML audit: synthetic IR data)."""
+        assert os.path.isfile(_path('tests', 'test_ir_synthetic.py'))
 
 
 class TestSyntax:
-    """Test Python file syntax"""
+    """Test Python file syntax (paths relative to test_simulator root)."""
     
-    def test_web_server_syntax(self):
-        """Test web_server.py syntax"""
-        with open('web_server.py', 'r', encoding='utf-8') as f:
-            compile(f.read(), 'web_server.py', 'exec')
-    
-    def test_main_syntax(self):
-        """Test main.py syntax"""
-        with open('main.py', 'r', encoding='utf-8') as f:
-            compile(f.read(), 'main.py', 'exec')
-    
-    def test_virtual_tv_syntax(self):
-        """Test virtual_tv.py syntax"""
-        with open('virtual_tv.py', 'r', encoding='utf-8') as f:
-            compile(f.read(), 'virtual_tv.py', 'exec')
-    
-    def test_ipc_server_syntax(self):
-        """Test ipc_server.py syntax"""
-        with open('ipc_server.py', 'r', encoding='utf-8') as f:
-            compile(f.read(), 'ipc_server.py', 'exec')
+    @pytest.mark.parametrize('relpath', [
+        'web_server.py', 'main.py', 'virtual_tv.py', 'ipc_server.py', 'button_codes.py',
+        'brand_detection.py', 'scheduler.py', 'ir_synthetic.py', 'protocol_classifier.py',
+    ])
+    def test_python_syntax(self, relpath):
+        """Test Python file compiles without syntax errors."""
+        path = _path(relpath)
+        if not os.path.exists(path):
+            pytest.skip(f"File not found: {relpath}")
+        with open(path, 'r', encoding='utf-8') as f:
+            compile(f.read(), path, 'exec')
 
 
 class TestHTMLStructure:
-    """Test HTML file structure"""
+    """Test HTML file structure (paths relative to test_simulator root)."""
     
     def test_html_doctype(self):
         """Test HTML has DOCTYPE"""
-        with open('web_templates/index.html', 'r', encoding='utf-8') as f:
+        path = _path('web_templates', 'index.html')
+        if not os.path.exists(path):
+            pytest.skip("index.html not found")
+        with open(path, 'r', encoding='utf-8') as f:
             content = f.read()
             assert '<!DOCTYPE html>' in content
     
     def test_html_structure(self):
         """Test HTML has required elements"""
-        with open('web_templates/index.html', 'r', encoding='utf-8') as f:
+        path = _path('web_templates', 'index.html')
+        if not os.path.exists(path):
+            pytest.skip("index.html not found")
+        with open(path, 'r', encoding='utf-8') as f:
             content = f.read().lower()
             assert '<html' in content
             assert '<head>' in content
@@ -116,13 +157,19 @@ class TestHTMLStructure:
     
     def test_html_canvas(self):
         """Test HTML has canvas container"""
-        with open('web_templates/index.html', 'r', encoding='utf-8') as f:
+        path = _path('web_templates', 'index.html')
+        if not os.path.exists(path):
+            pytest.skip("index.html not found")
+        with open(path, 'r', encoding='utf-8') as f:
             content = f.read()
             assert 'canvas-container' in content or 'canvas' in content
     
     def test_html_scripts(self):
         """Test HTML includes required scripts"""
-        with open('web_templates/index.html', 'r', encoding='utf-8') as f:
+        path = _path('web_templates', 'index.html')
+        if not os.path.exists(path):
+            pytest.skip("index.html not found")
+        with open(path, 'r', encoding='utf-8') as f:
             content = f.read().lower()
             assert 'tv-simulator.js' in content
             assert 'three.js' in content or 'three' in content
@@ -130,24 +177,32 @@ class TestHTMLStructure:
 
 
 class TestJavaScriptStructure:
-    """Test JavaScript file structure"""
+    """Test JavaScript file structure (paths relative to test_simulator root)."""
     
     def test_js_file_readable(self):
         """Test JavaScript file is readable"""
-        with open('web_static/js/tv-simulator.js', 'r', encoding='utf-8') as f:
+        path = _path('web_static', 'js', 'tv-simulator.js')
+        if not os.path.exists(path):
+            pytest.skip("tv-simulator.js not found")
+        with open(path, 'r', encoding='utf-8') as f:
             content = f.read()
             assert len(content) > 0
     
     def test_js_has_functions(self):
         """Test JavaScript has required functions"""
-        with open('web_static/js/tv-simulator.js', 'r', encoding='utf-8') as f:
+        path = _path('web_static', 'js', 'tv-simulator.js')
+        if not os.path.exists(path):
+            pytest.skip("tv-simulator.js not found")
+        with open(path, 'r', encoding='utf-8') as f:
             content = f.read()
-            # Check for common function patterns
             assert 'function' in content or '=>' in content or 'const' in content
     
     def test_js_has_socket(self):
         """Test JavaScript has socket initialization"""
-        with open('web_static/js/tv-simulator.js', 'r', encoding='utf-8') as f:
+        path = _path('web_static', 'js', 'tv-simulator.js')
+        if not os.path.exists(path):
+            pytest.skip("tv-simulator.js not found")
+        with open(path, 'r', encoding='utf-8') as f:
             content = f.read()
             assert 'socket' in content.lower() or 'io(' in content.lower()
 

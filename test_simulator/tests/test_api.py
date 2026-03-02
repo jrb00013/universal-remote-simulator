@@ -131,6 +131,8 @@ class TestStreamingAPI:
         # May return 200 or 404/500 if no frame available yet
         assert response.status_code in [200, 404, 500]
         if response.status_code == 200:
+            ct = (response.headers.get("content-type") or "").lower()
+            assert "application/json" in ct, f"Expected JSON for format=json, got content-type: {ct}"
             data = response.json()
             assert isinstance(data, dict)
 

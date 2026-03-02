@@ -122,8 +122,11 @@ class TestFrameAPI:
         if r_png.status_code == 200 and "image" in (r_png.headers.get("content-type") or ""):
             ok = True
         r_json = requests.get(f"{FRAME_URL}?format=json", timeout=5)
-        if r_json.status_code == 200:
-            data = r_json.json()
-            if isinstance(data, dict) and ("frame" in data or "width" in data):
-                ok = True
+        if r_json.status_code == 200 and "application/json" in (r_json.headers.get("content-type") or "").lower():
+            try:
+                data = r_json.json()
+                if isinstance(data, dict) and ("frame" in data or "width" in data):
+                    ok = True
+            except Exception:
+                pass
         assert ok, "Neither PNG nor JSON frame endpoint returned valid response"
