@@ -1265,13 +1265,13 @@ function createRoom() {
         new THREE.BoxGeometry(0.28, 0.18, 0.02),
         new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: 0.4, metalness: 0.3 })
     );
-    smartPanelFrame.position.set(rx(-8.5), ry(1.5), rz(-6));
+    smartPanelFrame.position.set(rx(-9.96), ry(1.5), rz(-6));
     roomGroup.add(smartPanelFrame);
     const smartPanelScreen = new THREE.Mesh(
         new THREE.PlaneGeometry(0.24, 0.14),
         new THREE.MeshStandardMaterial({ color: 0x0a2030, emissive: 0x102840, emissiveIntensity: 0.35 })
     );
-    smartPanelScreen.position.set(rx(-8.5), ry(1.5), rz(-5.99));
+    smartPanelScreen.position.set(rx(-9.95), ry(1.5), rz(-5.99));
     roomGroup.add(smartPanelScreen);
     roomDeviceRefs.smart_panel = smartPanelScreen;
 
@@ -1743,6 +1743,14 @@ function createRoom() {
     doorLockLed.position.set(rx(0.55), ry(1.22), rz(9.93));
     roomGroup.add(doorLockLed);
     roomDeviceRefs.door_lock = doorLockLed;
+    // Video doorbell (smart doorbell with status LED)
+    const doorbellBody = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.03), new THREE.MeshStandardMaterial({ color: 0x252528, roughness: 0.4 }));
+    doorbellBody.position.set(rx(-0.42), ry(1.5), rz(9.94));
+    roomGroup.add(doorbellBody);
+    const doorbellLed = new THREE.Mesh(new THREE.SphereGeometry(0.008, 6, 6), new THREE.MeshStandardMaterial({ color: 0x4080ff, emissive: 0x2060cc, emissiveIntensity: 0.3 }));
+    doorbellLed.position.set(rx(-0.42), ry(1.52), rz(9.93));
+    roomGroup.add(doorbellLed);
+    roomDeviceRefs.doorbell = doorbellLed;
     const coatHook = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 8), new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.6, roughness: 0.4 }));
     coatHook.position.set(rx(0.4), ry(1.4), rz(7.5));
     roomGroup.add(coatHook);

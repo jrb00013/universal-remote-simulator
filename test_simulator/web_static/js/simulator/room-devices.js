@@ -123,6 +123,43 @@ function updateRoomDevicesFromTVState() {
     if (roomDeviceRefs.hood_light && roomDeviceRefs.hood_light.material) {
         roomDeviceRefs.hood_light.material.emissiveIntensity = on(rs.hood_light) ? 0.4 : 0;
     }
+
+    // --- Smart automated home: new devices from room_state ---
+    // Motorized blinds: tilt 0 = open, 0.4 = half, 0.8 = closed (rotation around X)
+    const blindsTilt = (rs.blinds_tilt != null) ? Math.min(1, Math.max(0, rs.blinds_tilt)) : 0.3;
+    if (roomDeviceRefs.blinds && roomDeviceRefs.blinds.rotation) {
+        roomDeviceRefs.blinds.rotation.x = -blindsTilt * 0.6;
+    }
+    // Central smart panel: always-on dashboard glow; brighter when "active"
+    if (roomDeviceRefs.smart_panel && roomDeviceRefs.smart_panel.material) {
+        const panelOn = rs.smart_panel !== false;
+        roomDeviceRefs.smart_panel.material.emissiveIntensity = panelOn ? (0.35 + (tvOn ? 0.08 : 0)) : 0.05;
+    }
+    // Motion sensor: blink when motion, dim when idle
+    if (roomDeviceRefs.motion_sensor && roomDeviceRefs.motion_sensor.material) {
+        const motion = on(rs.motion_detected);
+        roomDeviceRefs.motion_sensor.material.emissiveIntensity = motion ? (0.5 + Math.sin(time * 8) * 0.2) : 0.15;
+    }
+    // Smoke/CO detector: green = OK, red would be alarm (we only show OK state)
+    if (roomDeviceRefs.smoke_detector && roomDeviceRefs.smoke_detector.material) {
+        const ok = rs.smoke_ok !== false;
+        roomDeviceRefs.smoke_detector.material.emissiveIntensity = ok ? 0.4 : 0;
+    }
+    // Under-cabinet strip: dedicated key or follow kitchen light
+    const underCabOn = (rs.under_cabinet != null) ? on(rs.under_cabinet) : on(rs.kitchen_light);
+    if (roomDeviceRefs.under_cabinet_strip && roomDeviceRefs.under_cabinet_strip.material) {
+        roomDeviceRefs.under_cabinet_strip.material.emissiveIntensity = underCabOn ? 0.5 : 0;
+    }
+    // Smart door lock: green when locked (secure)
+    if (roomDeviceRefs.door_lock && roomDeviceRefs.door_lock.material) {
+        const locked = rs.door_locked !== false;
+        roomDeviceRefs.door_lock.material.emissiveIntensity = locked ? 0.6 : 0.2;
+    }
+    // Video doorbell: on when powered / ready
+    if (roomDeviceRefs.doorbell && roomDeviceRefs.doorbell.material) {
+        const doorbellOn = rs.doorbell !== false;
+        roomDeviceRefs.doorbell.material.emissiveIntensity = doorbellOn ? (0.3 + Math.sin(time * 1.2) * 0.05) : 0.05;
+    }
 }
 
 // Animation loop with smooth camera movement
