@@ -1,8 +1,10 @@
 {
+  "default_target": "simulator",
   "presets": [
     {
       "name": "living_room_evening",
       "description": "Power on, HDMI 2, volume 40",
+      "target": "simulator",
       "buttons": [
         { "button_code": 16, "delay_ms": 0 },
         { "button_code": 37, "delay_ms": 3500 },
@@ -32,7 +34,8 @@
       "time": "19:00",
       "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
       "action": "apply_preset",
-      "preset_name": "living_room_evening"
+      "preset_name": "living_room_evening",
+      "target": "simulator"
     },
     {
       "time": "22:30",

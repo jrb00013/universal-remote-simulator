@@ -108,6 +108,16 @@
 #define BUTTON_PIP         0xD1
 #define BUTTON_SCREEN_MIRROR 0xD2
 
+/* Room / Smart Home Automation (remote controls TV + room devices) */
+#define BUTTON_ROOM_SCENE_MOVIE  0xE0
+#define BUTTON_ROOM_SCENE_RELAX  0xE1
+#define BUTTON_ROOM_SCENE_OFF    0xE2
+#define BUTTON_ROOM_LIGHTS_DIM   0xE3
+#define BUTTON_ROOM_LIGHTS_FULL  0xE4
+#define BUTTON_ROOM_SMART_PLUG1  0xE5
+#define BUTTON_ROOM_SMART_SPEAKER 0xE6
+#define BUTTON_ROOM_AMBIENT_STRIP 0xE7
+
 /* Button Type Enumeration */
 typedef enum {
     BTN_STREAMING,
@@ -123,7 +133,8 @@ typedef enum {
     BTN_GAMING,
     BTN_PICTURE,
     BTN_AUDIO,
-    BTN_CONNECTIVITY
+    BTN_CONNECTIVITY,
+    BTN_ROOM
 } button_type_t;
 
 /* Button Structure */

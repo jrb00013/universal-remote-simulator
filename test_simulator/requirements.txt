@@ -4,4 +4,10 @@ flask>=2.0.0
 flask-socketio>=5.0.0
 python-socketio>=5.0.0
 requests>=2.28.0
+# Optional: GPU detection for graphics preset (fallback to SIM_SAFE if missing)
+GPUtil>=1.4.0
+
+# Optional: OpenAPI JSON (/api/openapi), webhooks & MQTT (service_layer), real device adapters
+PyYAML>=6.0
+paho-mqtt>=1.6.0
 

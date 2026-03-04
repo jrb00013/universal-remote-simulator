@@ -97,6 +97,15 @@ BUTTON_CODES = {
     0xD0: "Multi View",
     0xD1: "Picture in Picture",
     0xD2: "Screen Mirror",
+    # Room / Smart Home Automation (remote controls TV + room)
+    0xE0: "Room: Movie",
+    0xE1: "Room: Relax",
+    0xE2: "Room: Off",
+    0xE3: "Room: Lights Dim",
+    0xE4: "Room: Lights Full",
+    0xE5: "Room: Plug 1",
+    0xE6: "Room: Speaker",
+    0xE7: "Room: Ambient",
 }
 
 

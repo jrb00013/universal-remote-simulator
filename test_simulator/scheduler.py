@@ -1,27 +1,29 @@
 #!/usr/bin/env python3
 """
 Autonomous scheduler: time-of-day rules + presets → automatic button presses.
-Sends commands to the simulator API so the "remote" controls the TV without user input.
-Run alongside the web server: poetry run python scheduler.py
+Uses adapters: simulator (default), broadlink, samsung, lg, cec.
+Production: set AUTONOMOUS_CONFIG, SERVICE_CONFIG via env. Handles SIGTERM for graceful exit.
 """
 import json
-import time
-import threading
+import logging
 import os
+import signal
 import sys
+import time
 
-try:
-    import requests
-except ImportError:
-    requests = None
-
-# Config and API
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CONFIG_PATH = os.path.join(SCRIPT_DIR, "autonomous_config.json")
-API_BASE = os.environ.get("SIMULATOR_API", "http://localhost:5000")
-API_BUTTON = f"{API_BASE}/api/button"
-CHECK_INTERVAL_SEC = 30
+DEFAULT_CHECK_INTERVAL_SEC = 30
 DAY_NAMES = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+SEND_RETRIES = 2
+SEND_RETRY_DELAY_SEC = 0.5
+
+logging.basicConfig(
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+)
+log = logging.getLogger("scheduler")
 
 
 def load_config(path: str) -> dict:
@@ -29,31 +31,50 @@ def load_config(path: str) -> dict:
         return json.load(f)
 
 
-def send_button(button_code: int, delay_ms: int = 0) -> bool:
-    if requests is None:
-        return False
+def load_service_config():
+    """Load service_config so adapters (backends) are available."""
     try:
-        r = requests.post(
-            API_BUTTON,
-            json={"button_code": button_code},
-            headers={"Content-Type": "application/json"},
-            timeout=5,
-        )
-        if delay_ms > 0:
-            time.sleep(delay_ms / 1000.0)
-        return r.status_code == 200
-    except Exception:
-        return False
+        from service_layer import load_service_config as _load
+        return _load()
+    except ImportError:
+        return {}
+    try:
+        from adapters.registry import load_config as _load
+        return _load()
+    except ImportError:
+        return {}
 
 
-def apply_preset(presets: list, preset_name: str) -> bool:
+def get_adapter_for_target(target: str = None):
+    """Resolve target to a RemoteBackend (simulator, broadlink, named device, etc.)."""
+    from adapters.registry import get_adapter
+    return get_adapter(target=target)
+
+
+def send_button_with_retry(adapter, code: int, delay_ms: int = 0) -> bool:
+    """Send one button with retries."""
+    for attempt in range(SEND_RETRIES):
+        if adapter.send_button(code, delay_ms):
+            return True
+        if attempt < SEND_RETRIES - 1:
+            time.sleep(SEND_RETRY_DELAY_SEC)
+    return False
+
+
+def apply_preset(presets: list, preset_name: str, target: str = None) -> bool:
+    """
+    Apply a preset: send its button sequence to the given target.
+    target: backend name or named device from service_config (e.g. simulator, living_room_tv).
+    """
+    adapter = get_adapter_for_target(target)
     for p in presets:
         if p.get("name") == preset_name:
             for b in p.get("buttons", []):
                 code = b.get("button_code")
                 delay = b.get("delay_ms", 0)
                 if code is not None:
-                    send_button(code, delay)
+                    if not send_button_with_retry(adapter, code, delay):
+                        log.warning("send_button failed for code %s (preset=%s target=%s)", code, preset_name, target)
             return True
     return False
 
@@ -76,17 +97,32 @@ def should_run_rule(rule: dict) -> bool:
 
 
 def run_scheduler(config_path: str):
+    load_service_config()
     config = load_config(config_path)
     presets = config.get("presets", [])
     time_rules = config.get("time_rules", [])
-    last_triggered = {}  # (time, preset_name) -> last run minute
+    default_target = config.get("default_target")
+    check_interval = config.get("check_interval_sec", DEFAULT_CHECK_INTERVAL_SEC)
 
-    print("[Scheduler] Autonomous scheduler started.")
-    print(f"[Scheduler] Config: {config_path}")
-    print(f"[Scheduler] API: {API_BASE}")
-    print(f"[Scheduler] Rules: {len(time_rules)}, Presets: {len(presets)}")
+    if not default_target:
+        try:
+            from service_layer import get_service_config
+            default_target = get_service_config().get("default_backend", "simulator")
+        except ImportError:
+            default_target = "simulator"
 
-    while True:
+    log.info("Scheduler started | config=%s default_target=%s rules=%d presets=%d check_interval=%ds",
+             config_path, default_target, len(time_rules), len(presets), check_interval)
+
+    shutdown_requested = False
+    def _on_signal(signum, frame):
+        nonlocal shutdown_requested
+        log.info("Shutdown requested (signal=%s)", signum)
+        shutdown_requested = True
+    signal.signal(signal.SIGTERM, _on_signal)
+    signal.signal(signal.SIGINT, _on_signal)
+
+    while not shutdown_requested:
         try:
             now = time.localtime()
             minute_key = (now.tm_hour, now.tm_min)
@@ -103,17 +139,26 @@ def run_scheduler(config_path: str):
                 if last_triggered.get(key) == minute_key:
                     continue
                 last_triggered[key] = minute_key
-                print(f"[Scheduler] Trigger: {rule.get('time')} -> preset '{preset_name}'")
-                apply_preset(presets, preset_name)
+                # Per-rule target, or preset target, or default
+                target = rule.get("target")
+                if not target:
+                    for p in presets:
+                        if p.get("name") == preset_name:
+                            target = p.get("target")
+                            break
+                if not target:
+                    target = default_target
+                log.info("Trigger | time=%s preset=%s target=%s", rule.get("time"), preset_name, target)
+                apply_preset(presets, preset_name, target=target)
 
             # Prune old keys to avoid unbounded growth
             if len(last_triggered) > 100:
                 last_triggered = {k: v for k, v in list(last_triggered.items())[-50:]}
 
         except Exception as e:
-            print(f"[Scheduler] Error: {e}")
+            log.exception("Scheduler error: %s", e)
 
-        time.sleep(CHECK_INTERVAL_SEC)
+        time.sleep(check_interval)
 
 
 def main():
@@ -121,8 +166,11 @@ def main():
     if not os.path.isfile(config_path):
         print(f"[Scheduler] Config not found: {config_path}")
         sys.exit(1)
-    if requests is None:
-        print("[Scheduler] Install requests: pip install requests")
+    try:
+        from adapters.registry import get_adapter
+        get_adapter("simulator")  # ensure adapter layer loads
+    except ImportError as e:
+        print(f"[Scheduler] Adapters not available: {e}")
         sys.exit(1)
     run_scheduler(config_path)
 

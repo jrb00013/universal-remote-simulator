@@ -143,6 +143,16 @@ const char* get_button_name(unsigned char button_code) {
         case BUTTON_MULTI_VIEW: return "Multi View";
         case BUTTON_PIP: return "Picture in Picture";
         case BUTTON_SCREEN_MIRROR: return "Screen Mirror";
+
+        /* Room / Smart Home Automation */
+        case BUTTON_ROOM_SCENE_MOVIE: return "Room: Movie";
+        case BUTTON_ROOM_SCENE_RELAX: return "Room: Relax";
+        case BUTTON_ROOM_SCENE_OFF: return "Room: Off";
+        case BUTTON_ROOM_LIGHTS_DIM: return "Room: Lights Dim";
+        case BUTTON_ROOM_LIGHTS_FULL: return "Room: Lights Full";
+        case BUTTON_ROOM_SMART_PLUG1: return "Room: Plug 1";
+        case BUTTON_ROOM_SMART_SPEAKER: return "Room: Speaker";
+        case BUTTON_ROOM_AMBIENT_STRIP: return "Room: Ambient";
         
         default: return "UNKNOWN";
     }

@@ -268,6 +268,18 @@ ir_code_t get_ir_code(unsigned char button_code) {
         case BUTTON_SCREEN_MIRROR:
             ir.code = IR_SCREEN_MIRROR;
             break;
+
+        /* Room / Smart Home (simulator-only; no IR) */
+        case BUTTON_ROOM_SCENE_MOVIE:
+        case BUTTON_ROOM_SCENE_RELAX:
+        case BUTTON_ROOM_SCENE_OFF:
+        case BUTTON_ROOM_LIGHTS_DIM:
+        case BUTTON_ROOM_LIGHTS_FULL:
+        case BUTTON_ROOM_SMART_PLUG1:
+        case BUTTON_ROOM_SMART_SPEAKER:
+        case BUTTON_ROOM_AMBIENT_STRIP:
+            ir.code = 0x00000000;
+            break;
         
         default:
             ir.code = 0x00000000;  /* Unknown button */
