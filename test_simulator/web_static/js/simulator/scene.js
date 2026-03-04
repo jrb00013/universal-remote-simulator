@@ -1260,6 +1260,21 @@ function createRoom() {
     roomGroup.add(thermoScreen);
     roomDeviceRefs.thermostat = thermoScreen;
 
+    // --- Central Smart Home panel (wall tablet: scenes, security, status) ---
+    const smartPanelFrame = new THREE.Mesh(
+        new THREE.BoxGeometry(0.28, 0.18, 0.02),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: 0.4, metalness: 0.3 })
+    );
+    smartPanelFrame.position.set(rx(-8.5), ry(1.5), rz(-6));
+    roomGroup.add(smartPanelFrame);
+    const smartPanelScreen = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.24, 0.14),
+        new THREE.MeshStandardMaterial({ color: 0x0a2030, emissive: 0x102840, emissiveIntensity: 0.35 })
+    );
+    smartPanelScreen.position.set(rx(-8.5), ry(1.5), rz(-5.99));
+    roomGroup.add(smartPanelScreen);
+    roomDeviceRefs.smart_panel = smartPanelScreen;
+
     // Third wall art (center, smaller - above console)
     const artCenter = new THREE.Group();
     const texCenter = makeArtTexture(100, 80, (ctx, w, h) => {
@@ -1500,6 +1515,21 @@ function createRoom() {
     corridorCeiling.rotation.x = Math.PI / 2;
     corridorCeiling.position.set(rx(-13), ry(10), rz(-6.5));
     roomGroup.add(corridorCeiling);
+    // Corridor: motion sensor (wall) + smoke/CO detector (ceiling)
+    const motionSensorBody = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.025), new THREE.MeshStandardMaterial({ color: 0x2a2a2e, roughness: 0.5 }));
+    motionSensorBody.position.set(rx(-12.7), ry(2.2), rz(-6.5));
+    roomGroup.add(motionSensorBody);
+    const motionSensorLed = new THREE.Mesh(new THREE.SphereGeometry(0.008, 6, 6), new THREE.MeshStandardMaterial({ color: 0x00cc44, emissive: 0x00aa33, emissiveIntensity: 0 }));
+    motionSensorLed.position.set(rx(-12.68), ry(2.2), rz(-6.48));
+    roomGroup.add(motionSensorLed);
+    roomDeviceRefs.motion_sensor = motionSensorLed;
+    const smokeDetectorBody = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.03, 16), new THREE.MeshStandardMaterial({ color: 0xf5f5f0, roughness: 0.7 }));
+    smokeDetectorBody.position.set(rx(-13), ry(9.85), rz(-6.5));
+    roomGroup.add(smokeDetectorBody);
+    const smokeDetectorLed = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 8), new THREE.MeshStandardMaterial({ color: 0x00ff44, emissive: 0x00cc33, emissiveIntensity: 0.4 }));
+    smokeDetectorLed.position.set(rx(-13), ry(9.82), rz(-6.45));
+    roomGroup.add(smokeDetectorLed);
+    roomDeviceRefs.smoke_detector = smokeDetectorLed;
     const doorJambMat = new THREE.MeshStandardMaterial({ color: 0xe8e2d8, roughness: 0.6 });
     const jambW = 0.08;
     const jambH = 2.2;
@@ -1659,6 +1689,14 @@ function createRoom() {
     hoodLight.position.set(rx(9.75), ry(2.32), rz(-4));
     roomGroup.add(hoodLight);
     roomDeviceRefs.hood_light = hoodLight;
+    // Under-cabinet smart LED strip (kitchen)
+    const underCabinetStrip = new THREE.Mesh(
+        new THREE.BoxGeometry(2.8, 0.015, 0.04),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xf8f4e8, emissiveIntensity: 0 })
+    );
+    underCabinetStrip.position.set(rx(9.75), ry(1.92), rz(-5));
+    roomGroup.add(underCabinetStrip);
+    roomDeviceRefs.under_cabinet_strip = underCabinetStrip;
     const kitchenPointLight = new THREE.PointLight(0xf8f4e8, 0, 5);
     kitchenPointLight.position.set(rx(8), ry(2.5), rz(-5));
     scene.add(kitchenPointLight);
@@ -1697,6 +1735,14 @@ function createRoom() {
     const frontDoor = new THREE.Mesh(new THREE.BoxGeometry(0.92, 2.1, 0.04), darkWoodMat);
     frontDoor.position.set(rx(0), ry(4.05), rz(9.96));
     roomGroup.add(frontDoor);
+    // Smart door lock panel (keypad + status LED)
+    const doorLockPanel = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, 0.02), new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: 0.4 }));
+    doorLockPanel.position.set(rx(0.55), ry(1.2), rz(9.94));
+    roomGroup.add(doorLockPanel);
+    const doorLockLed = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 8), new THREE.MeshStandardMaterial({ color: 0x00cc44, emissive: 0x00aa33, emissiveIntensity: 0.5 }));
+    doorLockLed.position.set(rx(0.55), ry(1.22), rz(9.93));
+    roomGroup.add(doorLockLed);
+    roomDeviceRefs.door_lock = doorLockLed;
     const coatHook = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 8), new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.6, roughness: 0.4 }));
     coatHook.position.set(rx(0.4), ry(1.4), rz(7.5));
     roomGroup.add(coatHook);
