@@ -1,17 +1,26 @@
-/**
- * TV Simulator – globals, state objects, channel lineup (tvShows).
- * Load first. No dependencies.
- */
+// 3D Virtual TV Simulator using Three.js
+// Full Interactive 3D Experience with Remote Control
+
 let scene, camera, renderer, controls;
 let tvMesh, screenMesh, roomGroup, remoteMesh, remoteGroup, handGroup, armGroup, firstPersonHolder;
 let firstPersonMode = false;
+// First-person walk mode: move with WASD, look with mouse (pointer lock), visible body
+let walkMode = false;
+let playerBody = null;           // Group: torso + legs, follows camera when walkMode
+let playerPosition = null;       // THREE.Vector3, when walkMode
+let playerYaw = 0;               // radians, left-right
+let playerPitch = 0;             // radians, up-down
+let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+const WALK_SPEED = 4.5;
+const EYE_HEIGHT = 1.62;
+const ROOM_BOUND = 21.5;         // keep player inside walls (huge smart home)
+const TV_POSITION = { x: 0, y: 1.68, z: -17.6 };  // scaled for 44x44x14 room
 let tvFrame, tvPowerLED, tvGlowLight;
 let tvState = {};
-// Room automation refs (set by scene.js; used by updateRoomState)
-let roomLights = { ceiling: null, lamp_left: null, lamp_right: null };
-let smartDevicesGroup = null;
-let roomDeviceRefs = { plug1: null, speaker: null, ambientStrip: null };
-let roomState = { scene: 'default', lights_main: 100, lights_lamp_left: 100, lights_lamp_right: 100, smart_plug_1: true, smart_speaker: true, ambient_strip: true };
+let roomLights = {};       // ceiling, lamp_left, lamp_right - PointLights driven by TV state
+let roomDeviceRefs = {};   // smart plugs, ambient strip, thermostat, speaker - meshes with emissive
+/** @type {Array<{group: THREE.Group, update: function(number, number): void}>} */
+let autonomousEntities = [];  // robot dogs, toaster, fridge, sensors, autonomous furniture, carpet bot - animated each frame
 let socket;
 let irSignal = null;
 let activeButton = null;
@@ -111,9 +120,6 @@ let remoteLookClose = {
     baseRotationY: -Math.PI / 5
 };
 
-// Remote style: 'handheld' (physical remote) or 'digital' (flat screen / tablet remote)
-let currentRemoteStyle = 'handheld';
-
 // 3D UI elements
 let ui3DElements = {
     channelOverlayMesh: null,
@@ -128,9 +134,6 @@ let screenEffects = {
     pixelShimmer: true,
     vignette: true,
     reflection: true,
-    // Revolutionary mode: glitch, chromatic aberration, VHS wobble (channel 0 or when enabled)
-    revolutionaryMode: false,
-    revolutionaryPhase: 0,
 };
 
 // Volume Stabilizer System - Prevents volume spikes when switching apps
@@ -265,15 +268,13 @@ let tvShows = {
     97: { name: 'C-SPAN 2', type: 'news', genre: 'News', color: { r: 120, g: 120, b: 160 } },
     98: { name: 'Public Access', type: 'general', genre: 'Local', color: { r: 150, g: 150, b: 180 } },
     99: { name: 'Test Pattern', type: 'general', genre: 'Utility', color: { r: 200, g: 200, b: 200 } },
-    // Channel 0: Reality Breach – fourth-wall, glitch, "revolutionary" mode
-    0: { name: 'Reality Breach', type: 'revolutionary', genre: '???', color: { r: 255, g: 0, b: 255 } },
     // Fallback for 100-999
     default: { name: 'TV Channel', type: 'general', genre: 'General', color: { r: 100, g: 100, b: 150 } }
 };
 
 // Get TV show for channel
 function getTVShow(channel) {
-    if (channel == null || typeof channel === 'undefined') return tvShows.default;
-    const c = parseInt(channel, 10);
-    return tvShows[c] || tvShows.default;
+    return tvShows[channel] || tvShows.default;
 }
+
+// Initialize WebSocket connection

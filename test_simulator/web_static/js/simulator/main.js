@@ -1,13 +1,13 @@
-/**
- * TV Simulator – animation loop, resize, DOMContentLoaded entry.
- * Depends: all other simulator modules.
- */
+var _lastAnimTime = 0;
 function animate() {
     requestAnimationFrame(animate);
+    var now = performance.now();
+    var dt = _lastAnimTime ? (now - _lastAnimTime) / 1000 : 0.016;
+    _lastAnimTime = now;
     
-    // Smooth camera interpolation
+    // Smooth camera interpolation (or walk mode update)
     if (window.updateCamera) {
-        window.updateCamera();
+        window.updateCamera(dt);
     }
     
     // Power on/off animation
@@ -74,7 +74,7 @@ function animate() {
             // Animate TV glow light with smooth ramp
             if (tvGlowLight) {
                 const lightIntensity = powerAnimation.currentBrightness * 1.2;
-                tvGlowLight.intensity = Math.min(lightIntensity, 1.5);
+                tvGlowLight.intensity = Math.min(lightIntensity, 1.9);
                 
                 // Color temperature shift (warmer when turning on)
                 const colorTemp = 1.0 - (progress * 0.2);
@@ -133,7 +133,7 @@ function animate() {
             
             // Animate TV glow light fade
             if (tvGlowLight) {
-                tvGlowLight.intensity = eased * 0.8;
+                tvGlowLight.intensity = eased * 1.05;
             }
             
             // Animate power LED (green -> red transition)
@@ -388,8 +388,9 @@ function animate() {
     
     // Ensure screen updates continuously when TV is on (for time-based animations)
     // This ensures all content (TV shows, apps, etc.) is broadcast to the screen
-    // Guarantee: when TV is on, we redraw the screen every frame so TV output is always animated (tickers, waves, etc.)
     if (tvState && tvState.powered_on && !powerAnimation.isAnimating && screenMesh) {
+        // Update screen periodically to keep time-based animations running
+        // Use a throttled update (every ~16ms = ~60fps max, but we'll do it every frame for smoothness)
         updateTVScreen(tvState);
     }
     
@@ -406,31 +407,32 @@ function animate() {
             tvFrame.material.emissiveIntensity = bezelGlow;
         }
         
-        // TV ambient light: room tint reacts to what's on (revolutionary touch)
+        // TV ambient light breathing effect (strong screen glow)
         if (tvGlowLight) {
-            const lightBreath = 0.8 + Math.sin(time * 1.2) * 0.1;
+            const lightBreath = 1.05 + Math.sin(time * 1.2) * 0.18;
             tvGlowLight.intensity = lightBreath;
-            let r = 1, g = 1, b = 1;
-            if (tvState.current_app && typeof getAppColor === 'function') {
-                const c = getAppColor(tvState.current_app);
-                r = (c.r || 255) / 255; g = (c.g || 255) / 255; b = (c.b || 255) / 255;
-            } else if (typeof getTVShow === 'function' && tvState.channel !== undefined) {
-                const show = getTVShow(tvState.channel);
-                if (show && show.color) {
-                    r = (show.color.r || 128) / 255;
-                    g = (show.color.g || 128) / 255;
-                    b = (show.color.b || 128) / 255;
-                }
-            }
-            const mix = 0.15 + Math.sin(time * 0.8) * 0.05;
-            tvGlowLight.color.setRGB(
-                Math.min(1, 1 - mix + r * mix),
-                Math.min(1, 1 - mix + g * mix),
-                Math.min(1, 1 - mix + b * mix)
-            );
         }
     }
-    
+
+    // Room smart devices follow TV state (remote-controlled: dim lights, ambient strip, plugs, etc.)
+    try {
+        updateRoomDevicesFromTVState();
+    } catch (err) {
+        if (typeof console !== 'undefined' && console.warn) console.warn('updateRoomDevicesFromTVState:', err);
+    }
+
+    // Autonomous entities: robot dogs, toaster, fridge, sensors, autonomous bed/desk, carpet bots
+    const autoTime = typeof Date !== 'undefined' ? Date.now() * 0.001 : 0;
+    if (typeof autonomousEntities !== 'undefined' && Array.isArray(autonomousEntities)) {
+        for (let i = 0; i < autonomousEntities.length; i++) {
+            try {
+                if (autonomousEntities[i].update) autonomousEntities[i].update(autoTime);
+            } catch (e) {
+                if (typeof console !== 'undefined' && console.warn) console.warn('autonomousEntities update:', e);
+            }
+        }
+    }
+
     // Animate button press feedback (green highlight + press-in, then fade out)
     if (activeButton && Date.now() - buttonPressTime < 200) {
         const elapsed = Date.now() - buttonPressTime;
@@ -470,6 +472,12 @@ function animate() {
         updateFirstPersonArm();
     } else if (armGroup) {
         armGroup.visible = false;
+    }
+
+    // Walk mode: body follows camera (position + rotation) so looking down shows torso/legs
+    if (walkMode && playerBody) {
+        playerBody.position.copy(camera.position);
+        playerBody.quaternion.copy(camera.quaternion);
     }
 
     // Subtle floating for remote (only when not in first-person)
@@ -563,24 +571,36 @@ function onWindowResize() {
     }
 }
 
+// Populate Smart Home panel with buttons for every controllable device (0xE0-0xF3)
+function initSmartHomePanel() {
+    const container = document.getElementById('smart-home-buttons');
+    if (!container) return;
+    const codes = window.BUTTON_CODES_FROM_C || {};
+    for (let code = 0xE0; code <= 0xF3; code++) {
+        const label = (codes[code] || ('0x' + code.toString(16))).replace(/^Room: /, '');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = label;
+        btn.title = codes[code] || ('Code 0x' + code.toString(16));
+        btn.style.cssText = 'padding: 4px 8px; font-size: 10px; cursor: pointer; background: rgba(76,175,80,0.3); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; color: #fff;';
+        btn.addEventListener('click', () => {
+            if (typeof socket !== 'undefined' && socket && socket.connected) {
+                socket.emit('button_press', { button_code: code });
+            }
+        });
+        container.appendChild(btn);
+    }
+}
+
 // Initialize everything
 window.addEventListener('DOMContentLoaded', () => {
-    var loadingEl = document.getElementById('loading');
-    try {
-        // Initialize scene first (room, TV, remote, lights)
-        initScene();
-        // Hide loading as soon as 3D is ready so user sees the scene even if server is slow/unavailable
-        if (loadingEl) loadingEl.style.display = 'none';
-    } catch (e) {
-        console.error('Scene init failed:', e);
-        if (loadingEl) {
-            loadingEl.textContent = 'Scene error: ' + (e.message || String(e));
-            loadingEl.style.color = '#ff6b6b';
-        }
-    }
+    // Initialize scene first
+    initScene();
     
-    // Then initialize socket connection (state updates, reconnection)
+    // Then initialize socket connection
     initSocket();
+    
+    initSmartHomePanel();
     
     // Initialize screen with default state after a short delay to ensure everything is loaded
     setTimeout(() => {

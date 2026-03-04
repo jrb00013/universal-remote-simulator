@@ -168,6 +168,7 @@
         }
         #btn-look-remote:hover { background: rgba(33, 150, 243, 1); }
         #btn-look-remote.active { background: rgba(25, 118, 210, 1); }
+        #btn-walk:hover { background: rgba(156, 39, 176, 1); }
         .remote-style-btn { padding: 8px 14px; font-size: 12px; }
         .remote-style-btn.active { background: rgba(76, 175, 80, 1); border-color: rgba(255,255,255,0.5); }
     </style>
@@ -215,6 +216,7 @@
         
         <button type="button" id="btn-zoom-tv" class="view-btn" title="Zoom in on the TV" onclick="switchViewToTVZoom()">Zoom on TV</button>
         <button type="button" id="btn-look-remote" class="view-btn" title="First-person view: your arm extends to the remote" onclick="switchViewToRemote()">First person (arm + remote)</button>
+        <button type="button" id="btn-walk" class="view-btn" title="First-person walk: WASD move, mouse look, visible body" onclick="typeof enterWalkMode === 'function' && enterWalkMode()" style="left: 50%; transform: translateX(calc(-50% + 200px)); background: rgba(156, 39, 176, 0.9);">Walk around</button>
         
         <div id="remote-style" style="position: absolute; bottom: 20px; right: 20px; z-index: 101; display: flex; gap: 8px; align-items: center;">
             <span style="color: #aaa; font-size: 12px;">Remote:</span>
@@ -224,11 +226,15 @@
         
         <div id="controls">
             <h3>Controls</h3>
+            <p><strong>Walk around:</strong> First-person walk with body. <strong>WASD</strong> move, <strong>mouse</strong> look. <strong>Escape</strong> to exit.</p>
             <p><strong>Zoom on TV:</strong> Close-up view of the TV</p>
             <p><strong>First person (arm + remote):</strong> Your view with an arm extending to the remote</p>
             <p><strong>P:</strong> Power (turn TV on/off)</p>
             <p><strong>U / D:</strong> Volume up / down</p>
-            <p><strong>Mouse:</strong> Click & drag to rotate camera</p>
+            <p><strong>F1–F8:</strong> Smart home scenes & devices (Movie, Relax, Off, Dim, Full, Plug 1, Speaker, Ambient)</p>
+            <p><strong>Shift+F1–F8:</strong> House devices (Plug 2, Plug 3, Kitchen, Fridge, Bedroom lamp, Bathroom, Upstairs hall, Entry)</p>
+            <p><strong>Ctrl+F1–F4:</strong> More devices (Entry, Upstairs bedroom, Upstairs bathroom, Hood)</p>
+            <p><strong>Mouse:</strong> Click & drag to rotate camera (when not walking)</p>
             <p><strong>Wheel:</strong> Zoom in/out</p>
             <p><strong>Click Remote:</strong> Press buttons on 3D remote!</p>
             <p><strong>Remote style:</strong> Choose <strong>Handheld</strong> (physical) or <strong>Digital</strong> (flat screen) in the bottom-right.</p>
@@ -240,6 +246,12 @@
             <p style="margin-top: 10px; color: #FFC107; font-weight: bold;">
                 Streaming: Click YT, NF, PR, HB buttons on remote!
             </p>
+        </div>
+        
+        <div id="smart-home-panel" style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.85); color: #fff; padding: 12px; border-radius: 10px; min-width: 180px; z-index: 101; pointer-events: auto; backdrop-filter: blur(10px);">
+            <h3 style="margin-bottom: 8px; color: #4CAF50; font-size: 14px;">Smart Home</h3>
+            <p style="font-size: 11px; color: #aaa; margin-bottom: 8px;">Toggle each device (same as remote)</p>
+            <div id="smart-home-buttons" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
         </div>
     </div>
     
@@ -257,14 +269,17 @@
     </script>
     <script src="/static/js/ir-visualization.js"></script>
     <script src="/static/js/simulator/globals.js"></script>
+    <script src="/static/js/simulator/socket-state.js"></script>
     <script src="/static/js/simulator/utils.js"></script>
     <script src="/static/js/simulator/animations.js"></script>
-    <script src="/static/js/simulator/socket-state.js"></script>
+    <script src="/static/js/simulator/ir.js"></script>
+    <script src="/static/js/simulator/preset.js"></script>
     <script src="/static/js/simulator/scene.js"></script>
     <script src="/static/js/simulator/ir-remote.js"></script>
     <script src="/static/js/simulator/shows.js"></script>
     <script src="/static/js/simulator/screen.js"></script>
     <script src="/static/js/simulator/controls.js"></script>
+    <script src="/static/js/simulator/room-devices.js"></script>
     <script src="/static/js/simulator/main.js"></script>
 </body>
 </html>

@@ -1,7 +1,3 @@
-/**
- * TV Simulator – power/channel/app/volume/HDMI animations, volume stabilizer.
- * Depends: globals.
- */
 function startPowerAnimation(turningOn) {
     powerAnimation.isAnimating = true;
     powerAnimation.startTime = Date.now();
@@ -301,3 +297,5 @@ function smoothVolumeTransition(fromVolume, toVolume) {
     
     requestAnimationFrame(animate);
 }
+
+// IR signal particle system
