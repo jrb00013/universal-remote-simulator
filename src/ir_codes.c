@@ -278,6 +278,18 @@ ir_code_t get_ir_code(unsigned char button_code) {
         case BUTTON_ROOM_SMART_PLUG1:
         case BUTTON_ROOM_SMART_SPEAKER:
         case BUTTON_ROOM_AMBIENT_STRIP:
+        case BUTTON_ROOM_SMART_PLUG2:
+        case BUTTON_ROOM_SMART_PLUG3:
+        case BUTTON_ROOM_KITCHEN_LIGHT:
+        case BUTTON_ROOM_FRIDGE:
+        case BUTTON_ROOM_OVEN:
+        case BUTTON_ROOM_BEDROOM_LAMP:
+        case BUTTON_ROOM_BATHROOM_LIGHT:
+        case BUTTON_ROOM_UPSTAIRS_HALL:
+        case BUTTON_ROOM_ENTRY_LIGHT:
+        case BUTTON_ROOM_UPSTAIRS_BEDROOM:
+        case BUTTON_ROOM_UPSTAIRS_BATHROOM:
+        case BUTTON_ROOM_HOOD_LIGHT:
             ir.code = 0x00000000;
             break;
         

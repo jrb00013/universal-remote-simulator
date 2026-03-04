@@ -153,6 +153,18 @@ const char* get_button_name(unsigned char button_code) {
         case BUTTON_ROOM_SMART_PLUG1: return "Room: Plug 1";
         case BUTTON_ROOM_SMART_SPEAKER: return "Room: Speaker";
         case BUTTON_ROOM_AMBIENT_STRIP: return "Room: Ambient";
+        case BUTTON_ROOM_SMART_PLUG2: return "Room: Plug 2";
+        case BUTTON_ROOM_SMART_PLUG3: return "Room: Plug 3";
+        case BUTTON_ROOM_KITCHEN_LIGHT: return "Room: Kitchen Light";
+        case BUTTON_ROOM_FRIDGE: return "Room: Fridge";
+        case BUTTON_ROOM_OVEN: return "Room: Oven";
+        case BUTTON_ROOM_BEDROOM_LAMP: return "Room: Bedroom Lamp";
+        case BUTTON_ROOM_BATHROOM_LIGHT: return "Room: Bathroom Light";
+        case BUTTON_ROOM_UPSTAIRS_HALL: return "Room: Upstairs Hall";
+        case BUTTON_ROOM_ENTRY_LIGHT: return "Room: Entry Light";
+        case BUTTON_ROOM_UPSTAIRS_BEDROOM: return "Room: Upstairs Bedroom";
+        case BUTTON_ROOM_UPSTAIRS_BATHROOM: return "Room: Upstairs Bathroom";
+        case BUTTON_ROOM_HOOD_LIGHT: return "Room: Hood Light";
         
         default: return "UNKNOWN";
     }
