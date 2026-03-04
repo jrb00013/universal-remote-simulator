@@ -34,7 +34,10 @@ class TestFileStructure:
         assert os.path.isfile(_path("web_templates", "index.html"))
 
     def test_tv_simulator_js_exists(self):
-        assert os.path.isfile(_path("web_static", "js", "tv-simulator.js"))
+        # Modular simulator: simulator/main.js and globals.js
+        base = _path("web_static", "js", "simulator")
+        assert os.path.isdir(base), "simulator/ directory missing"
+        assert os.path.isfile(os.path.join(base, "main.js")), "simulator/main.js missing"
 
 
 class TestPythonSyntax:
@@ -97,7 +100,7 @@ class TestHTMLStructure:
             "<head>",
             "<body>",
             "canvas-container",
-            "tv-simulator.js",
+            "simulator/",
             "three.js",
             "socket.io",
         ]
@@ -106,15 +109,17 @@ class TestHTMLStructure:
 
 
 class TestJSStructure:
-    """tv-simulator.js contains expected function names."""
+    """Simulator modules contain expected function names."""
 
     def test_js_has_expected_functions(self):
-        path = _path("web_static", "js", "tv-simulator.js")
-        if not os.path.isfile(path):
-            pytest.skip("tv-simulator.js not found")
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-        # Allow function name as function declaration or call
+        base = _path("web_static", "js", "simulator")
+        if not os.path.isdir(base):
+            pytest.skip("simulator/ not found")
+        content = ""
+        for name in os.listdir(base):
+            if name.endswith(".js"):
+                with open(os.path.join(base, name), "r", encoding="utf-8") as f:
+                    content += f.read()
         required = [
             "initSocket",
             "initScene",
@@ -123,7 +128,7 @@ class TestJSStructure:
             "updateTVScreen",
             "animate",
         ]
-        for name in required:
+        for fn in required:
             assert (
-                f"function {name}" in content or f"{name}()" in content or f"{name} (" in content
-            ), f"Expected '{name}' in tv-simulator.js"
+                f"function {fn}" in content or f"{fn}()" in content or f"{fn} (" in content
+            ), f"Expected '{fn}' in simulator modules"

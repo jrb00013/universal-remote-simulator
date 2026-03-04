@@ -17,6 +17,9 @@ from tests.conftest import (
     get_state,
 )
 
+# Minimal 1x1 PNG (base64, no data URL prefix) for frame pipeline test
+_MINIMAL_PNG_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
 
 class TestStreamingStrict:
     """Streaming service tests with strict current_app verification."""
@@ -99,6 +102,39 @@ class TestChannelAndTVShows:
 
 class TestFrameAPI:
     """Frame/streaming API availability and basic shape."""
+
+    def test_frame_pipeline_receives_via_socketio(self, server_running):
+        """Prove frame pipeline works: send frame_update via Socket.IO, then GET /api/frame/info."""
+        import socketio
+        info_url = f"{FRAME_URL}/info"
+        r0 = requests.get(info_url, timeout=5)
+        assert r0.status_code == 200, "Frame info endpoint must be available"
+        before = r0.json()
+        prev_processed = before.get("frames_processed", 0)
+        sio = socketio.Client()
+        try:
+            sio.connect(BASE_URL, wait_timeout=5)
+            sio.emit(
+                "frame_update",
+                {
+                    "frame_data": _MINIMAL_PNG_B64,
+                    "width": 512,
+                    "height": 512,
+                    "format": "png",
+                    "timestamp": time.time(),
+                },
+            )
+            time.sleep(0.3)
+        finally:
+            sio.disconnect()
+        r = requests.get(info_url, timeout=5)
+        assert r.status_code == 200
+        data = r.json()
+        assert data.get("has_frame") is True, "Server must have a frame after frame_update"
+        assert data.get("frames_processed", 0) >= prev_processed + 1, (
+            f"frames_processed must increase (was {prev_processed}, got {data.get('frames_processed')})"
+        )
+        assert data.get("width") == 512 and data.get("height") == 512
 
     def test_frame_info_returns_dimensions(self, server_running, ensure_tv_on):
         """Frame info endpoint returns width/height when available."""

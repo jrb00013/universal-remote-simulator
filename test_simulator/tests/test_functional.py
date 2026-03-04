@@ -11,6 +11,17 @@ from tests.conftest import (
 )
 
 
+def _wait_for_power_state(expected, timeout=8.0, poll=0.5):
+    """Poll get_state() until powered_on matches expected or timeout."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        state = get_state()
+        if state is not None and state.get('powered_on') is expected:
+            return state
+        time.sleep(poll)
+    return get_state()
+
+
 class TestPowerCycle:
     """Test power on/off cycle"""
     
@@ -20,24 +31,20 @@ class TestPowerCycle:
         state = get_state()
         if state and state.get('powered_on'):
             press_button(BUTTON_CODES['Power'])
-            time.sleep(2.5)
+            _wait_for_power_state(False, timeout=5.0)
         
         # Turn on
         press_button(BUTTON_CODES['Power'])
-        time.sleep(2.5)  # Wait for power-on animation
-        
-        state = get_state()
-        assert state is not None
-        assert state.get('powered_on') is True
+        state = _wait_for_power_state(True)
+        assert state is not None, "get_state() returned None"
+        assert state.get('powered_on') is True, f"Expected TV on, got state: {state}"
     
     def test_power_off(self, server_running, ensure_tv_on):
         """Test turning TV off"""
         press_button(BUTTON_CODES['Power'])
-        time.sleep(2.5)  # Wait for power-off animation
-        
-        state = get_state()
-        assert state is not None
-        assert state.get('powered_on') is False
+        state = _wait_for_power_state(False)
+        assert state is not None, "get_state() returned None"
+        assert state.get('powered_on') is False, f"Expected TV off, got state: {state}"
 
 
 class TestStreamingServices:
@@ -53,7 +60,15 @@ class TestStreamingServices:
         """Test each streaming service"""
         press_button(button_code, delay=1.2)  # Wait for animation
         
-        state = get_state()
+        # Allow a short moment for state to propagate (avoid race with broadcast)
+        state = None
+        for _ in range(5):
+            state = get_state()
+            if state is not None and state.get('current_app') is not None:
+                break
+            time.sleep(0.3)
+        if state is None:
+            state = get_state()
         assert state is not None
         current_app = state.get('current_app')
         # App should match or be in transition
