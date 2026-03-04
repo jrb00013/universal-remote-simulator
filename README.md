@@ -11,8 +11,9 @@ A **3D smart home simulator** built around a virtual living room: TV, interactiv
 ## Features
 
 ### 3D Simulator and Automation
-- **3D living room:** TV, remote, room (floor, walls, window, sofa, coffee table, lamps, plants, media console). Orbit camera, first-person mode, GPU-based graphics presets.
-- **Autonomous scheduler:** Time rules (e.g. 19:00 weekdays) and presets (button sequences). Targets simulator or real devices via `autonomous_config.json` and `service_config.json`.
+- **3D living room:** Floor, walls, ceiling, baseboards, window (frame, sill, glass, curtains), area rug, sofa with throw pillows and blanket, coffee table (mug, book, remote, candle, bowl), side table with lamp and smart speaker, floor lamp, accent armchair and side table with plant, media console (set-top box, speakers, books, game controller, smart hub), potted plants (sofa corner, window sill, accent table, back corner), wall art (three pieces), wall clock, thermostat, outlets and power strip, magazine basket, floating shelf with books and vase, floor vent. All lit with ceiling fixture and table/floor lamps.
+- **Smart devices (controllable by the remote):** Room lights (ceiling, left lamp, right lamp) dim when TV is on (movie mode). Ambient LED strip behind the console follows the current app color (YouTube/Netflix/Prime/HBO). Smart plugs (console, window sill, accent table) and power strip show on/off state. Smart speaker, smart hub on console, thermostat screen, and visible smart bulbs in lamps react to TV state. Candle glow dims when TV is on. No extra API: everything is driven by TV power and app/channel from the same remote.
+- **Orbit camera, first-person mode, first-person walk mode (WASD + mouse look, visible body), GPU-based graphics presets.** Autonomous scheduler: time rules and presets target simulator or real devices via `autonomous_config.json` and `service_config.json`.
 - **Remote as a service:** REST (state, button, presets, backends), WebSocket, optional API key, webhooks, MQTT. OpenAPI spec. Home Assistant and Node-RED examples.
 - **Backend adapters:** Simulator (default), Broadlink IR blaster, Samsung Smart TV, LG webOS, HDMI-CEC. Per-rule or per-preset target.
 
@@ -464,7 +465,7 @@ When adding new buttons or features:
 
 ## Running the 3D Simulator
 
-The web app serves the 3D smart home simulator: living room (floor, walls, window, sofa, lamps, media console), TV, and interactive 3D remote. Room lighting reacts to the current channel or app. Orbit the camera, zoom to the TV or remote, use keyboard shortcuts or click the remote. Optional: run the **autonomous scheduler** so time rules apply presets automatically.
+The web app serves the 3D smart home simulator: a detailed living room (furniture, plants, wall art, clock, thermostat, rug, lamps, smart speaker, smart plugs, ambient strip, accent chair, etc.) with a TV and interactive 3D remote. Room lighting and all smart devices react to the remote: lights dim when the TV is on, ambient strip follows the current app color, plugs and hub LEDs reflect state. Orbit the camera, zoom to the TV or remote, use keyboard shortcuts or click the remote. Optional: run the **autonomous scheduler** so time rules apply presets automatically.
 
 ### Quick start
 
@@ -490,6 +491,12 @@ The web app serves the 3D smart home simulator: living room (floor, walls, windo
    poetry run python scheduler.py
    ```
    Edit `autonomous_config.json` for times and presets; use `service_config.json` and adapters to target real devices. See test_simulator/docs/SERVICE_AND_AUTOMATION.md.
+
+### Verify everything works
+
+- **Web:** Start the server, open http://localhost:5000, click the 3D remote buttons and use keyboard shortcuts; the TV and room devices should respond.
+- **Tests:** Without the server, `cd test_simulator && poetry run pytest` runs unit, environment, brand detection, IR, and protocol tests (many API/functional tests skip). With the server running, run the same command for the full suite including API and remote/visual tests.
+- **C remote:** `make SIMULATOR=1 WEB=1` then `./bin/remote_control`; with the web server up, the 3D simulator receives button presses from the C program.
 
 ## Latency Measurement and Optimization
 
@@ -531,10 +538,12 @@ latency_print_all_stats();
 
 See `docs/LATENCY_OPTIMIZATION.md` and `docs/LATENCY_IMPLEMENTATION.md` for complete documentation.
 
-- **3D simulator:** Living room (floor, walls, window, sofa, lamps, media console, rug), TV, 3D remote. Room glow reacts to channel/app. GPU-based graphics presets. WebSocket + REST.
+**What's included (complete):**
+- **3D simulator:** Detailed living room (furniture, plants, wall art, clock, thermostat, rug, lamps, smart speaker, smart plugs, ambient strip, accent chair, media console with hub and controller). TV and 3D remote. Room glow and all smart devices react to channel/app and TV power. GPU-based graphics presets. WebSocket + REST.
 - **Autonomous scheduler:** Time rules and presets in `autonomous_config.json`; targets simulator or real backends. `scheduler.py` runs as a daemon; optional `service_config.json` for auth, webhooks, MQTT, and named devices.
 - **Smart home:** REST API, webhooks, MQTT, Home Assistant and Node-RED examples. Adapters: simulator, Broadlink, Samsung, LG, CEC.
 - **C universal remote:** Multi-protocol IR, brand detection (keyword table, `POST /api/detect-brand`), code scan mode. Latency measurement and assembly-optimized timing.
 - **IR protocol path:** `ir_synthetic.py` and `protocol_classifier.py` (rule-based, 40% tolerance); no neural nets.
-- **Planned:** IR learning (IR receiver), hardware-specific IR, multi-device profiles, macro recording, expanded code database.
+- **Tests:** Remote and visual animation tests (`test_remote_visual.py`), API and functional tests, pytest suite (see test_simulator/README_TESTS.md).
+- **Planned (optional):** IR learning (IR receiver), hardware-specific IR, multi-device profiles, macro recording, expanded code database.
 

@@ -25,24 +25,27 @@ The Virtual TV Simulator provides a game-like virtual TV interface for testing t
 - Emissive screen glow when powered on
 
 ### Immersive Room
-- Virtual room environment
-- Floor, walls, and ceiling
-- Ambient lighting and shadows
-- Subtle particle effects for atmosphere
+- **Shell:** Floor (futuristic dark slate with tech grid), walls (slate blue-gray), ceiling (cool white), baseboards, window (frame, sill, glass, curtains), wall outlet, floor vent.
+- **Furniture:** Sofa (base, back, cushion, arms), throw pillows and blanket; coffee table with mug, book, remote prop, candle, bowl; side table (left) with lamp, coaster, book, smart speaker, diffuser; floor lamp (right); accent armchair with side table and small plant; media console with set-top box, speakers, books, game controller, smart hub; magazine basket; floating shelf (left wall) with books and vase.
+- **Decor:** Area rug (striped); three wall art pieces; wall clock; thermostat/smart panel; potted plants (sofa corner, window sill x2, accent table, back corner tall plant).
+- **Lighting:** Ceiling fixture (bulb + shade), left table lamp, right floor lamp; window fill light; TV glow (reacts to app/channel).
+- **Smart devices (all controllable by the remote via TV state):** Ceiling, left lamp, and right lamp dim when TV is on (movie mode). Ambient LED strip behind console follows current app color (YouTube/Netflix/Prime/HBO). Smart plugs (power strip, window sill, accent table) and smart hub on console show on/off LEDs. Smart speaker glows when TV is on. Thermostat screen and visible smart bulbs in lamps brighten/dim with TV state. Candle dims when TV is on. No separate smart-home API: everything is driven by the same remote (TV power and app/channel).
+- Ambient lighting and shadows; subtle particle effects for atmosphere.
 
 ### VR-like Controls
 
-**Mouse:**
+**Walk mode (first-person):** Click **Walk around** to lock the pointer and enter first-person walk. **WASD** move, **mouse** look; a visible body (torso and legs) appears when you look down. **Escape** exits walk mode.
+
+**Mouse (when not in walk mode):**
 - **Click & Drag**: Rotate camera around TV (orbit control)
 - **Scroll Wheel**: Zoom in/out
-- **Right-click**: Pan camera (if implemented)
 
 **Keyboard:**
 - **Space**: Reset camera to default position
 - **1**: Front view
 - **2**: Side view
 - **3**: Top view
-- **4**: Remote close-up
+- **4**: Remote close-up (first-person arm + remote)
 
 ### Programmed channel lineup (Live TV)
 Channels **1–99** are explicitly programmed with distinct shows and visuals; **100–999** use a generic fallback. Examples:
@@ -58,7 +61,7 @@ Channels **1–99** are explicitly programmed with distinct shows and visuals; *
 - **Channel 0 – Reality Breach**: Fourth-wall “revolutionary” channel with glitch art, chromatic aberration, VHS-style wobble, and messages like “YOU ARE BEING WATCHED” and “THE SIMULATOR IS THE MESSAGE.” Enter **000** on the number pad to tune in.
 
 ### Revolutionary touches
-- **Room reacts to TV**: The 3D room’s ambient glow (TV light) tints subtly with the current channel or app color (e.g. red for Netflix, green for sports).
+- **Room reacts to TV**: The 3D room’s ambient glow (TV light) tints subtly with the current channel or app color (e.g. red for Netflix, green for sports). All room lights and smart devices (lamps, ambient strip, plugs, speaker, thermostat, candle, smart bulbs) are driven by TV state: dim when TV is on, ambient strip color follows app.
 - **Channel 0 effects**: On Reality Breach, the screen gets a post-process pass: RGB chromatic shift, horizontal slice glitch, and scan chaos so the TV feels like it’s breaking the fourth wall.
 
 ### Real-time Status Panel
