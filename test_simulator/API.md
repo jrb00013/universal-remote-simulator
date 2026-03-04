@@ -182,6 +182,97 @@ Returns frame information.
 curl http://localhost:5000/api/frame/info
 ```
 
+#### Get Graphics Preset (GPU tier)
+
+```http
+GET /api/graphics-preset
+GET /api/graphics-preset?refresh=1
+```
+
+Returns the current GPU-based graphics preset used by the 3D simulator (tier, GPU name, VRAM, and all preset keys: antialias, shadowMapEnabled, shadowMapSize, pixelRatio, texture sizes, fogFar, ambientParticleCount, etc.). Used at runtime by the simulator for renderer, shadows, textures, fog, and particles.
+
+- Without query: returns cached preset (computed at first use).
+- With `?refresh=1`: recomputes preset (re-detects GPU and reclassifies tier), then returns it.
+
+**Response (example):**
+```json
+{
+  "_tier": "MEDIUM",
+  "_gpu_name": "NVIDIA GeForce GTX 1060",
+  "_vram_gb": 6.0,
+  "antialias": true,
+  "shadowMapEnabled": true,
+  "shadowMapType": "PCFShadowMap",
+  "shadowMapSize": 1024,
+  "pixelRatio": 0.95,
+  "fogFar": 32,
+  "ambientParticleCount": 40
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:5000/api/graphics-preset
+curl "http://localhost:5000/api/graphics-preset?refresh=1"
+```
+
+#### Set Graphics Config (persist tier override)
+
+```http
+POST /api/graphics-preset
+Content-Type: application/json
+```
+
+Persists graphics config to disk (`graphics_config.json`) and invalidates the cached preset. Use to lock a tier or revert to auto.
+
+**Request body (one or both):**
+- `use_auto` (boolean): `true` = use auto tier from GPU; clears any tier override.
+- `tier_override` (string): `"ULTRA"` | `"HIGH"` | `"MEDIUM"` | `"LOW"` | `"SIM_SAFE"` to force that tier; sets auto off.
+
+**Response (success):**
+```json
+{
+  "ok": true,
+  "preset": { "_tier": "MEDIUM", ... }
+}
+```
+
+**Examples:**
+```bash
+# Lock to MEDIUM tier
+curl -X POST http://localhost:5000/api/graphics-preset -H "Content-Type: application/json" -d '{"tier_override": "MEDIUM"}'
+
+# Revert to auto (GPU-based tier)
+curl -X POST http://localhost:5000/api/graphics-preset -H "Content-Type: application/json" -d '{"use_auto": true}'
+```
+
+Config is used by the next `GET /api/graphics-preset` or page load. Hysteresis (to avoid preset flickering at VRAM boundaries) uses the persisted `last_tier` from this config.
+
+## Service & automation API
+
+When running as a **remote-as-a-service** (see [docs/SERVICE_AND_AUTOMATION.md](docs/SERVICE_AND_AUTOMATION.md)), these endpoints are available. Optional auth: if `service_config.json` has `api_key`, send `X-API-Key` or `Authorization: Bearer <key>`.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/health` | Health check: `{ "status": "ok", "service": "tv_remote", "version": "1.0.0" }` |
+| GET | `/api/presets` | List presets and default_target from autonomous_config |
+| POST | `/api/preset/<name>/trigger` | Run preset; body/query `target` (default simulator) |
+| GET | `/api/backends` | List backend names (simulator, broadlink, samsung, lg, cec) |
+| GET | `/api/backends/status` | Backend availability: `{ name: { name, available } }` |
+| POST | `/api/backends/broadlink/learn` | Learn IR code; body `{ "host": "IP", "timeout_sec": 10 }` → `{ "ir_hex": "..." }` |
+
+**Examples:**
+
+```bash
+curl http://localhost:5000/api/health
+curl http://localhost:5000/api/presets
+curl -X POST http://localhost:5000/api/preset/living_room_evening/trigger -H "Content-Type: application/json" -d '{"target":"simulator"}'
+curl http://localhost:5000/api/backends/status
+curl -X POST http://localhost:5000/api/backends/broadlink/learn -H "Content-Type: application/json" -d '{"host":"192.168.1.100","timeout_sec":10}'
+```
+
+OpenAPI 3.0 spec: `GET /api/openapi.yaml` or `GET /api/openapi` (JSON).
+
 ## WebSocket Events
 
 ### Connection
@@ -223,6 +314,16 @@ socket.on('tv_state_update', (data) => {
   //   game_mode: false,
   //   input: "HDMI 1"
   // }
+});
+```
+
+#### Graphics Preset
+
+Emitted on connect and when the client sends `request_state`. Contains the GPU-based graphics preset (tier, GPU name, VRAM, and all preset keys) used by the 3D simulator at runtime.
+
+```javascript
+socket.on('graphics_preset', (preset) => {
+  console.log('Graphics tier:', preset._tier, 'GPU:', preset._gpu_name);
 });
 ```
 

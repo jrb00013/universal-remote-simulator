@@ -38,7 +38,7 @@ Open `http://localhost:5000` in your browser.
 **Click buttons on the 3D remote:**
 - ✅ Click Power button (red button on top)
 - ✅ See IR signal beam travel from remote to TV
-- ✅ Button lights up green when clicked
+- ✅ **Visual animation:** Button lights up green and briefly “presses in” (z movement), then fades back
 - ✅ TV screen updates (turns on/off)
 - ✅ Status panel updates
 
@@ -259,6 +259,22 @@ The virtual TV window will open and wait for commands.
 5. Try Volume Up/Down - see the volume bar change
 6. Try Channel Up/Down - see the channel number change
 7. Try option 1 (Streaming Services) - see apps open on the TV
+
+## Remote and Visual Animation Tests
+
+To ensure the remote works and that button presses drive the visual animation:
+
+```bash
+cd test_simulator
+poetry run pytest tests/test_remote_visual.py -v
+```
+
+These tests verify:
+- The remote accepts button presses (API returns success).
+- TV state updates after a button press.
+- The server broadcasts `tv_state_update` over WebSocket when a button is pressed (so the 3D remote can show the green highlight and press animation).
+
+Manual check: in the browser, click any remote button and confirm the button lights up green and briefly moves in (press animation), then fades back within ~200 ms.
 
 ## Automated Test Suite
 

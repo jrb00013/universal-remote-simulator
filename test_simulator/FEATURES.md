@@ -44,11 +44,28 @@ The Virtual TV Simulator provides a game-like virtual TV interface for testing t
 - **3**: Top view
 - **4**: Remote close-up
 
+### Programmed channel lineup (Live TV)
+Channels **1–99** are explicitly programmed with distinct shows and visuals; **100–999** use a generic fallback. Examples:
+- **1–5**: News, Weather, Business
+- **6–20**: Creative shows (Big Red Dog, Pabst, Lifeguard, Toaster, Clouds, Paint, Rubber Duck, etc.)
+- **21–30**: Sports (Football, Basketball, Baseball, Soccer, Tennis, Hockey, Golf, MMA, Racing, Olympic)
+- **31–40**: Movies (Action, Sci-Fi, Comedy, Horror, Romance, Western, Documentary, Thriller, Indie, Classic)
+- **41–50**: Kids/Family (Cartoon Network, Disney, Nickelodeon, PBS Kids, Animal Planet, Discovery Kids, etc.)
+- **51–60**: Music (MTV, VH1, Classic Rock, Jazz, Country, Hip Hop, Latin, EDM, Acoustic, Pop)
+- **61–70**: Drama (Crime, Soap, Legal, Medical, Political, Period, Anthology, etc.)
+- **71–80**: News/Docs (World News, Local, Politics, Tech, Sports News, Weather, Science, History, Travel)
+- **81–99**: Variety (Reality, Game Show, Talk, Food, Home, DIY, True Crime, Comedy, C-SPAN, Public Access, Test Pattern)
+- **Channel 0 – Reality Breach**: Fourth-wall “revolutionary” channel with glitch art, chromatic aberration, VHS-style wobble, and messages like “YOU ARE BEING WATCHED” and “THE SIMULATOR IS THE MESSAGE.” Enter **000** on the number pad to tune in.
+
+### Revolutionary touches
+- **Room reacts to TV**: The 3D room’s ambient glow (TV light) tints subtly with the current channel or app color (e.g. red for Netflix, green for sports).
+- **Channel 0 effects**: On Reality Breach, the screen gets a post-process pass: RGB chromatic shift, horizontal slice glitch, and scan chaos so the TV feels like it’s breaking the fourth wall.
+
 ### Real-time Status Panel
 - Power status
 - Volume level
 - Current channel
-- Active app
+- Active app (or “Live TV” when on a channel)
 - Mute status
 - Game mode
 - Last button pressed
