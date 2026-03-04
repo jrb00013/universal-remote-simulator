@@ -27,3 +27,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Graphics config (persisted tier override; optional to commit)
+graphics_config.json
+
+# Service config (API key, webhook URL, MQTT credentials - do not commit)
+service_config.json
+
