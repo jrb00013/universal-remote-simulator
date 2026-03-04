@@ -106,6 +106,18 @@ BUTTON_CODES = {
     0xE5: "Room: Plug 1",
     0xE6: "Room: Speaker",
     0xE7: "Room: Ambient",
+    0xE8: "Room: Plug 2",
+    0xE9: "Room: Plug 3",
+    0xEA: "Room: Kitchen Light",
+    0xEB: "Room: Fridge",
+    0xEC: "Room: Oven",
+    0xED: "Room: Bedroom Lamp",
+    0xEE: "Room: Bathroom Light",
+    0xEF: "Room: Upstairs Hall",
+    0xF0: "Room: Entry Light",
+    0xF1: "Room: Upstairs Bedroom",
+    0xF2: "Room: Upstairs Bathroom",
+    0xF3: "Room: Hood Light",
 }
 
 

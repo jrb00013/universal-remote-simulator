@@ -175,15 +175,27 @@ tv_state = {
     'detected_brand_id': 0,
 }
 
-# Room / smart home state (futuristic room automation; remote controls these too)
+# Room / smart home state (whole house automation; remote controls every device)
 room_state = {
     'scene': 'default',       # 'default' | 'movie' | 'relax' | 'off'
     'lights_main': 100,       # 0-100 ceiling/main
     'lights_lamp_left': 100,
     'lights_lamp_right': 100,
     'smart_plug_1': True,
+    'smart_plug_2': True,
+    'smart_plug_3': True,
     'smart_speaker': True,
     'ambient_strip': True,
+    'kitchen_light': True,
+    'fridge_on': True,
+    'oven_on': False,
+    'bedroom_lamp': True,
+    'bathroom_light': True,
+    'upstairs_hall': True,
+    'entry_light': True,
+    'upstairs_bedroom_lamp': True,
+    'upstairs_bathroom_light': True,
+    'hood_light': True,
 }
 tv_state['room_state'] = room_state  # so client gets it in tv_state_update
 
@@ -257,7 +269,7 @@ def handle_button_press(button_code, from_hardware=False):
     else:
         log.debug("Button pressed (UI): %s (0x%02X)", button_name, button_code)
     
-    # Room / smart home automation (0xE0-0xE7)
+    # Room / smart home automation (0xE0-0xE7 scenes + 0xE8-0xF3 device toggles)
     if 0xE0 <= button_code <= 0xE7:
         if button_code == 0xE0:   # Room: Movie
             room_state['scene'] = 'movie'
@@ -273,12 +285,26 @@ def handle_button_press(button_code, from_hardware=False):
             room_state['lights_lamp_right'] = 50
             room_state['ambient_strip'] = True
             tv_state['notification'] = 'Room: Relax scene'
-        elif button_code == 0xE2:  # Room: Off
+        elif button_code == 0xE2:  # Room: Off (whole house off)
             room_state['scene'] = 'off'
             room_state['lights_main'] = 0
             room_state['lights_lamp_left'] = 0
             room_state['lights_lamp_right'] = 0
             room_state['ambient_strip'] = False
+            room_state['kitchen_light'] = False
+            room_state['fridge_on'] = False
+            room_state['oven_on'] = False
+            room_state['bedroom_lamp'] = False
+            room_state['bathroom_light'] = False
+            room_state['upstairs_hall'] = False
+            room_state['entry_light'] = False
+            room_state['upstairs_bedroom_lamp'] = False
+            room_state['upstairs_bathroom_light'] = False
+            room_state['hood_light'] = False
+            room_state['smart_plug_1'] = False
+            room_state['smart_plug_2'] = False
+            room_state['smart_plug_3'] = False
+            room_state['smart_speaker'] = False
             tv_state['notification'] = 'Room: All off'
         elif button_code == 0xE3:  # Lights Dim
             room_state['lights_main'] = max(0, room_state['lights_main'] - 25)
@@ -300,6 +326,25 @@ def handle_button_press(button_code, from_hardware=False):
         elif button_code == 0xE7:  # Ambient Strip
             room_state['ambient_strip'] = not room_state['ambient_strip']
             tv_state['notification'] = f"Ambient: {'ON' if room_state['ambient_strip'] else 'OFF'}"
+    # Whole-house device toggles (0xE8-0xF3) - each instrument controllable from remote
+    elif 0xE8 <= button_code <= 0xF3:
+        key, label = {
+            0xE8: ('smart_plug_2', 'Plug 2'),
+            0xE9: ('smart_plug_3', 'Plug 3'),
+            0xEA: ('kitchen_light', 'Kitchen Light'),
+            0xEB: ('fridge_on', 'Fridge'),
+            0xEC: ('oven_on', 'Oven'),
+            0xED: ('bedroom_lamp', 'Bedroom Lamp'),
+            0xEE: ('bathroom_light', 'Bathroom Light'),
+            0xEF: ('upstairs_hall', 'Upstairs Hall'),
+            0xF0: ('entry_light', 'Entry Light'),
+            0xF1: ('upstairs_bedroom_lamp', 'Upstairs Bedroom'),
+            0xF2: ('upstairs_bathroom_light', 'Upstairs Bathroom'),
+            0xF3: ('hood_light', 'Hood Light'),
+        }.get(button_code, (None, None))
+        if key:
+            room_state[key] = not room_state.get(key, True)
+            tv_state['notification'] = f"{label}: {'ON' if room_state[key] else 'OFF'}"
     # Handle TV button actions
     elif button_code == 0x10:  # Power
         tv_state['powered_on'] = not tv_state['powered_on']
